@@ -26,7 +26,7 @@ public class FirstScreen implements Screen {
     @Override
     public void show() {
         // Prepare your screen here.
-        playerShip = new PlayerShip(100, 100, 200);
+        playerShip = new PlayerShip(100, 200);
         bullets = new ArrayList<>();
         bulletFactory = new BulletFactory(); // Здесь используется Factory Method
 
