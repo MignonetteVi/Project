@@ -14,22 +14,28 @@ import java.util.List;
 public class FirstScreen implements Screen {
     private PlayerShip playerShip;
     private List<Bullet> bullets;
+    private IBulletFactory bulletFactory;
 
     private Texture playerTexture;
     private Texture bulletTexture;
     private SpriteBatch batch;
+
+
+    private boolean wasSpacePressedLastFrame = false;
+
     @Override
     public void show() {
         // Prepare your screen here.
-        playerShip = new PlayerShip(100, 100, 500);
+        playerShip = new PlayerShip(100, 100, 200);
         bullets = new ArrayList<>();
+        bulletFactory = new BulletFactory(); // Здесь используется Factory Method
 
         playerTexture = new Texture(Gdx.files.internal("player.png"));
         bulletTexture = new Texture(Gdx.files.internal("bullet.png"));
         batch = new SpriteBatch();
 
 
-        bullets.add(playerShip.shoot());
+
     }
 
     @Override
@@ -37,17 +43,25 @@ public class FirstScreen implements Screen {
         // Draw your screen here. "delta" is the time since last render in seconds.
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        boolean left = Gdx.input.isKeyPressed(Input.Keys.LEFT);
-        boolean right = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
-        boolean up = Gdx.input.isKeyPressed(Input.Keys.UP);
-        boolean down = Gdx.input.isKeyPressed(Input.Keys.DOWN);
-
+        // Движение корабля
+        boolean left = Gdx.input.isKeyPressed(Input.Keys.A);
+        boolean right = Gdx.input.isKeyPressed(Input.Keys.D);
         playerShip.move(delta, left, right);
 
+        // Стрельба при нажатии пробела
+        boolean isSpacePressed = Gdx.input.isKeyPressed(Input.Keys.SPACE);
+        if (isSpacePressed && !wasSpacePressedLastFrame) {
+            Bullet bullet = bulletFactory.createBullet(playerShip.x, playerShip.y);
+            bullets.add(bullet);
+        }
+        wasSpacePressedLastFrame = isSpacePressed;
+
+        // Движение снарядов
         for (Bullet bullet : bullets) {
             bullet.move(delta);
         }
 
+        // Отрисовка
         batch.begin();
         batch.draw(playerTexture, playerShip.x, playerShip.y);
         for (Bullet bullet : bullets) {
