@@ -1,6 +1,7 @@
 package com.celestialwarfront.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -20,7 +21,7 @@ public class FirstScreen implements Screen {
     @Override
     public void show() {
         // Prepare your screen here.
-        playerShip = new PlayerShip(100, 100, 100);
+        playerShip = new PlayerShip(100, 100, 500);
         bullets = new ArrayList<>();
 
         playerTexture = new Texture(Gdx.files.internal("player.png"));
@@ -36,7 +37,13 @@ public class FirstScreen implements Screen {
         // Draw your screen here. "delta" is the time since last render in seconds.
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        playerShip.move(delta);
+        boolean left = Gdx.input.isKeyPressed(Input.Keys.LEFT);
+        boolean right = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        boolean up = Gdx.input.isKeyPressed(Input.Keys.UP);
+        boolean down = Gdx.input.isKeyPressed(Input.Keys.DOWN);
+
+        playerShip.move(delta, left, right);
+
         for (Bullet bullet : bullets) {
             bullet.move(delta);
         }

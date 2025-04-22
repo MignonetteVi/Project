@@ -3,17 +3,19 @@ package com.celestialwarfront.game;
 public class PlayerShip implements  IMovable, IShootable {
     public float x;
     public float y;
-    public float speed;
+    private float speedX, speedY;
 
     public PlayerShip(float x, float y, float speed) {
         this.x = x;
         this.y = y;
-        this.speed = speed;
+        this.speedX = speed;
+        this.speedY = speed;
     }
 
     @Override
-    public void move(float deltaTime) {
-        x+=speed*deltaTime;
+    public void move(float deltaTime, boolean left, boolean right) {
+        if (left) x -= speedX * deltaTime;
+        if (right) x += speedX * deltaTime;
     }
 
     @Override
