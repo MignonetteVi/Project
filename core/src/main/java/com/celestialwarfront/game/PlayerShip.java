@@ -16,6 +16,10 @@ public class PlayerShip implements  IMovable, IShootable {
 
     }
 
+    public void setPosition(float x) {
+        this.x = x;
+    }
+
     @Override
     public void move(float deltaTime, boolean left, boolean right) {
         if (left) x -= speedX * deltaTime;
