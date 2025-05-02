@@ -53,8 +53,6 @@ public class FirstScreen implements Screen {
     private float meteorSpawnTimer;
     private float nextMeteorSpawn; // время до следующего метеора
 
-    private boolean gameOver; // флаг конца игры
-
     // --- для спавна строк блоков ---
     private float blockSpawnTimer;
     private float nextBlockSpawn;    // время до следующей линии
@@ -62,6 +60,16 @@ public class FirstScreen implements Screen {
     private int gapIndex;          // текущая свободная колонка
     private int cols;              // число колонок: cols = screenWidth / blockWidth
     private int gapLinesRemaining;
+
+    // базовая скорость прокрутки блоков (устанавливается при выборе сложности)
+    private float baseBlockScrollSpeed;
+    // на сколько прибавляем к скорости за каждую линию
+    private float speedIncrementPerLine = 2f;
+
+    // сколько уже сгенерировано линий
+    private int linesSpawned;
+
+    private boolean gameOver; // флаг конца игры
 
     @Override
     public void show() {
@@ -104,6 +112,9 @@ public class FirstScreen implements Screen {
                 maxSpawnInterval   =  8f;
                 break;
         }
+
+        baseBlockScrollSpeed = blockScrollSpeed;
+        linesSpawned        = 0;
 
         playerShip = new PlayerShip(100, 200);
         bullets = new ArrayList<>();
@@ -159,11 +170,32 @@ public class FirstScreen implements Screen {
         // Draw your screen here. "delta" is the time since last render in seconds.
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        // --- настройка коллизии корабля вне зависимости от текстуры ---
+        float blockW = breakableTex.getWidth();
+
+        float origW   = playerTexture.getWidth();
+        float origH   = playerTexture.getHeight();
+
+        float scale   = blockW / origW;
+        float shipW   = origW * scale;  // blockW
+        float shipH   = origH * scale;
+
         if (!gameOver) {
             // --- движение корабля ---
             boolean left = Gdx.input.isKeyPressed(Input.Keys.A);
             boolean right = Gdx.input.isKeyPressed(Input.Keys.D);
             playerShip.move(delta, left, right);
+
+            // --- коллизия корабля с inset-ом в 20% ---
+            float inset = shipW * 0.2f;
+            Rectangle shipRect = new Rectangle(
+                playerShip.x + inset,
+                playerShip.y + inset,
+                shipW - inset*2,
+                shipH - inset*2
+            );
+
+
 
             // --- стрельба при нажатии пробела ---
             boolean isSpacePressed = Gdx.input.isKeyPressed(Input.Keys.SPACE);
@@ -184,6 +216,24 @@ public class FirstScreen implements Screen {
                 b.move(0, -blockScrollSpeed * delta);
             }
 
+
+            // --- коллизия пересечения корабля с блоками ---
+            for (Block b : blocks) {
+                if (shipRect.overlaps(b.getBounds())) {
+                    gameOver = true;
+                    showGameOverDialog();
+                    return;
+                }
+            }
+
+            // --- коллизия пересечения корабля с метеорами ---
+            for (Meteor m : meteors) {
+                if (shipRect.overlaps(m.getBounds())) {
+                    gameOver = true;
+                    showGameOverDialog();
+                    return;
+                }
+            }
 
             // --- плюс, дополнительная гравитация для специально падающих блоков ---
             for (Block b : blocks) {
@@ -246,23 +296,38 @@ public class FirstScreen implements Screen {
             bullets.removeAll(bulletsToRemove);
             blocks.removeAll(blocksToRemove);
 
-            // --- проверка коллизии корабль ↔ метеор ---
-            Rectangle shipRect = new Rectangle(
-                playerShip.x, playerShip.y,
-                playerTexture.getWidth(),
-                playerTexture.getHeight()
-            );
-            for (Meteor m : meteors) {
-                if (shipRect.overlaps(m.getBounds())) {
-                    gameOver = true;
-                    showGameOverDialog();   // !!! вызов диалога
-                    break;
+
+            // --- Обработка попаданий пуль по метеорам ---
+            List<Meteor> meteorsToRemove = new ArrayList<>();
+            for (Bullet b : bullets) {
+                Rectangle bRect = new Rectangle(
+                    b.x, b.y,
+                    bulletTexture.getWidth(),
+                    bulletTexture.getHeight()
+                );
+                for (Meteor m : meteors) {
+                    if (bRect.overlaps(m.getBounds())) {
+                        // если хотите, можно вызвать m.onHit(); для эффектов
+                        meteorsToRemove.add(m);
+                        bulletsToRemove.add(b);
+                        break;  // пуля уничтожает только один метеор
+                    }
                 }
             }
+            // --- удаляем метеоры и пули, попавшие в них ---
+            meteors.removeAll(meteorsToRemove);
+            bullets.removeAll(bulletsToRemove);
+
 
             // --- отрисовка ---
             batch.begin();
-            batch.draw(playerTexture, playerShip.x, playerShip.y);
+
+            batch.draw(
+                playerTexture,
+                playerShip.x, playerShip.y,
+                shipW, shipH
+            );
+
             for (Bullet bullet : bullets) {
                 batch.draw(bulletTexture, bullet.x, bullet.y);
             }
@@ -272,6 +337,7 @@ public class FirstScreen implements Screen {
             for (Meteor m : meteors) {
                 m.render(batch);
             }
+
             batch.end();
         }
 
@@ -320,21 +386,39 @@ public class FirstScreen implements Screen {
     }
 
     private void restartGame() {
-        // --- сброс позиции корабля ---
-        playerShip.setPosition(100);
-        // --- очистка пуль ---
+        // --- сброс позиции корабля и пуль, как было ---
+        playerShip.setPosition(0);
         bullets.clear();
-        // --- сброс блоков (пример начального состояния) ---
+
+        // --- сброс блоков и спавн первой группы заново ---
         blocks.clear();
-        blocks.add(BlockFactory.createBlock(BlockFactory.BlockType.BREAKABLE,   50, 300, breakableTex, 1));
-        blocks.add(BlockFactory.createBlock(BlockFactory.BlockType.UNBREAKABLE, 150, 300, unbreakableTex));
-        blocks.add(BlockFactory.createBlock(BlockFactory.BlockType.FALLING,     250, 300, fallingTex));
-        // --- сброс метеоров и таймеров ---
+        // --- восстановить исходное число линий группы ---
+        nextLineGroupCount = (difficulty == Difficulty.HARD ? 3 : 1);
+        // --- сброс и перерасчёт параметров коридора ---
+        gapIndex           = cols / 2;
+        gapLinesRemaining  = 5;
+        linesSpawned       = 0;
+
+        // --- сброс таймеров спавна линий ---
+        blockSpawnTimer    = 0f;
+        nextBlockSpawn     = minSpawnInterval
+            + random.nextFloat() * (maxSpawnInterval - minSpawnInterval);
+
+        // --- сброс скорости в базовое значение ---
+        blockScrollSpeed   = baseBlockScrollSpeed;
+
+        // --- и сразу заспавнить первые линии ---
+        spawnBlockGroup(nextLineGroupCount);
+
+        // --- сброс метеоров и их таймера ---
         meteors.clear();
         meteorSpawnTimer = 0f;
         nextMeteorSpawn  = 5f;
-        gameOver         = false;
+
+        // --- снова разрешим движение ---
+        gameOver = false;
     }
+
 
     // --- спавнит одну горизонтальную линию блоков сверху на экране ---
     private void spawnBlockLineAt(float y) {
@@ -378,9 +462,16 @@ public class FirstScreen implements Screen {
 
         int shift = random.nextInt(3) - 1;
         gapIndex = MathUtils.clamp(gapIndex + shift, 0, cols - 1);
+
+        // учёт новой линии
+        linesSpawned++;
+
+// пересчитываем текущую скорость прокрутки
+        blockScrollSpeed = baseBlockScrollSpeed + linesSpawned * speedIncrementPerLine;
+
     }
 
-    // ---  Спавнит подряд не более двух линий, одна над другой ---
+    // --- Спавнит подряд не более двух линий, одна над другой ---
     private void spawnBlockGroup(int lines) {
         float screenH = Gdx.graphics.getHeight();
         float blockH  = breakableTex.getHeight();
