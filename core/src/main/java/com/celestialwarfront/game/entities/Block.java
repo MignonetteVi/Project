@@ -26,4 +26,9 @@ public abstract class Block {
     public Rectangle getBounds() {
         return new Rectangle(x, y, width, height);
     }
+
+    public void move(float dx, float dy) {
+        this.x += dx;
+        this.y += dy;
+    }
 }
