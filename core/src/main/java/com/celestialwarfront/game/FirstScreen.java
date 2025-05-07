@@ -14,16 +14,17 @@ import java.util.List;
 import java.util.Random;
 import javax.swing.JOptionPane;
 import com.badlogic.gdx.math.Rectangle;
-import com.celestialwarfront.game.patterns.BlockFactory;
+import com.celestialwarfront.game.logic.Level;
+import com.celestialwarfront.game.patterns.*;
 import com.celestialwarfront.game.patterns.BlockFactory.BlockType;
-import com.celestialwarfront.game.patterns.BulletFactory;
-import com.celestialwarfront.game.patterns.IBulletFactory;
+import com.celestialwarfront.game.logic.Difficulty;
+
 
 /** First screen of the application. Displayed after the application is created. */
 public class FirstScreen implements Screen {
 
     // --- выбор сложности ---
-    private enum Difficulty { EASY, MEDIUM, HARD }
+
 
     private Difficulty difficulty;
 
@@ -87,31 +88,18 @@ public class FirstScreen implements Screen {
             options,
             options[0]
         );
-        difficulty = (sel == 1 ? Difficulty.MEDIUM
-            : sel == 2 ? Difficulty.HARD
-            : Difficulty.EASY);
+        difficulty = Difficulty.fromIndex(sel);
+
 
         // настройка параметров по выбору
-        switch(difficulty) {
-            case EASY:
-                nextLineGroupCount = 1;
-                blockScrollSpeed   =  60f;
-                minSpawnInterval   =  8f;
-                maxSpawnInterval   = 12f;
-                break;
-            case MEDIUM:
-                nextLineGroupCount = 1;
-                blockScrollSpeed   = 100f;
-                minSpawnInterval   =  6f;
-                maxSpawnInterval   = 10f;
-                break;
-            case HARD:
-                nextLineGroupCount = 3;
-                blockScrollSpeed   = 140f;
-                minSpawnInterval   =  4f;
-                maxSpawnInterval   =  8f;
-                break;
-        }
+        ILevelProvider provider = new JsonLevelProvider();
+        Level level = provider.createLevel(difficulty);
+
+        nextLineGroupCount = level.getNextLineGroupCount();
+        blockScrollSpeed   = level.getBlockScrollSpeed();
+        minSpawnInterval   = level.getMinSpawnInterval();
+        maxSpawnInterval   = level.getMaxSpawnInterval();
+        nextMeteorSpawn    = level.getInitialMeteorSpawnInterval();
 
         baseBlockScrollSpeed = blockScrollSpeed;
         linesSpawned        = 0;
@@ -211,7 +199,6 @@ public class FirstScreen implements Screen {
             }
 
             // --- скроллим все блоки вниз, чтобы линии ехали на корабль ---
-            float blockScrollSpeed = 100f; // пикс/сек
             for (Block b : blocks) {
                 b.move(0, -blockScrollSpeed * delta);
             }

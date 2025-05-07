@@ -1,0 +1,23 @@
+{
+  "EASY": {
+    "nextLineGroupCount": 1,
+    "blockScrollSpeed":  60.0,
+    "minSpawnInterval":  8.0,
+    "maxSpawnInterval": 12.0,
+    "initialMeteorSpawnInterval": 5.0
+  },
+  "MEDIUM": {
+    "nextLineGroupCount": 1,
+    "blockScrollSpeed": 100.0,
+    "minSpawnInterval":  6.0,
+    "maxSpawnInterval": 10.0,
+    "initialMeteorSpawnInterval": 5.0
+  },
+  "HARD": {
+    "nextLineGroupCount": 3,
+    "blockScrollSpeed": 140.0,
+    "minSpawnInterval":  4.0,
+    "maxSpawnInterval":  8.0,
+    "initialMeteorSpawnInterval": 5.0
+  }
+}

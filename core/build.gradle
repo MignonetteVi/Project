@@ -1,3 +1,11 @@
+sourceSets {
+  main {
+    resources {
+      srcDirs += rootProject.file('config')
+    }
+  }
+}
+
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 eclipse.project.name = appName + '-core'
 
