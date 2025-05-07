@@ -1,8 +1,8 @@
-package com.celestialwarfront.game;
+package com.celestialwarfront.game.entities;
 
 import com.badlogic.gdx.Gdx;
 
-public class PlayerShip implements  IMovable, IShootable {
+public class PlayerShip implements IMovable, IShootable {
     public float x;
     public float y;
     private float speedX;

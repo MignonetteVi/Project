@@ -1,6 +1,10 @@
-package com.celestialwarfront.game.entities;
+package com.celestialwarfront.game.patterns;
 
 import com.badlogic.gdx.graphics.Texture;
+import com.celestialwarfront.game.entities.Block;
+import com.celestialwarfront.game.entities.BreakableBlock;
+import com.celestialwarfront.game.entities.FallingBlock;
+import com.celestialwarfront.game.entities.UnbreakableBlock;
 
 public class BlockFactory {
     public enum BlockType { BREAKABLE, UNBREAKABLE, FALLING }

@@ -7,17 +7,17 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
-import com.celestialwarfront.game.entities.Block;
-import com.celestialwarfront.game.entities.BlockFactory;
-import com.celestialwarfront.game.entities.FallingBlock;
-import com.celestialwarfront.game.entities.Meteor;
+import com.celestialwarfront.game.entities.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import javax.swing.JOptionPane;
 import com.badlogic.gdx.math.Rectangle;
-import com.celestialwarfront.game.entities.BreakableBlock;
-import com.celestialwarfront.game.entities.BlockFactory.BlockType;
+import com.celestialwarfront.game.patterns.BlockFactory;
+import com.celestialwarfront.game.patterns.BlockFactory.BlockType;
+import com.celestialwarfront.game.patterns.BulletFactory;
+import com.celestialwarfront.game.patterns.IBulletFactory;
 
 /** First screen of the application. Displayed after the application is created. */
 public class FirstScreen implements Screen {

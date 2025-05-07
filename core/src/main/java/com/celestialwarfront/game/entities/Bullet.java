@@ -1,6 +1,6 @@
-package com.celestialwarfront.game;
+package com.celestialwarfront.game.entities;
 
-public class Bullet implements IMovableBullet{
+public class Bullet implements IMovableBullet {
     public float x;
     public float y;
     public float speed;
