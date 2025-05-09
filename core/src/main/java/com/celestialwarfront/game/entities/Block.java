@@ -3,11 +3,13 @@ package com.celestialwarfront.game.entities;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
+import com.celestialwarfront.game.collisions.IDamageable;
 
-public abstract class Block {
+public abstract class Block implements IDamageable {
     protected float x, y;
     protected float width, height;
     protected Texture texture;
+    private boolean destroyed = false;  // флаг удаления
 
     public Block(float x, float y, Texture texture) {
         this.x = x;
@@ -17,18 +19,33 @@ public abstract class Block {
         this.height = texture.getHeight();
     }
 
+    @Override
+    public void applyDamage(int damage) {
+        onHit();
+    }
+
     public abstract void onHit();
 
-    public void render(SpriteBatch batch) {
-        batch.draw(texture, x, y);
+    public boolean isDestroyed() {
+        return destroyed;
+    }
+
+    protected void markDestroyed() {
+        this.destroyed = true;
+    }
+
+    public void move(float dx, float dy) {
+        this.x += dx;
+        this.y += dy;
     }
 
     public Rectangle getBounds() {
         return new Rectangle(x, y, width, height);
     }
 
-    public void move(float dx, float dy) {
-        this.x += dx;
-        this.y += dy;
+    public void render(SpriteBatch batch) {
+        if (!destroyed) {
+            batch.draw(texture, x, y);
+        }
     }
 }

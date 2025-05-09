@@ -3,6 +3,7 @@ package com.celestialwarfront.game.entities;
 import com.badlogic.gdx.graphics.Texture;
 
 public class BreakableBlock extends Block {
+
     private int health;
     private boolean destroyed = false;
 

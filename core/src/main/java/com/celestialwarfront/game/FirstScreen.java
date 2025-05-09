@@ -18,15 +18,17 @@ import com.celestialwarfront.game.logic.Level;
 import com.celestialwarfront.game.patterns.*;
 import com.celestialwarfront.game.patterns.BlockFactory.BlockType;
 import com.celestialwarfront.game.logic.Difficulty;
+import com.celestialwarfront.game.collisions.CollisionSystem;
 
 
 /** First screen of the application. Displayed after the application is created. */
 public class FirstScreen implements Screen {
 
     // --- выбор сложности ---
-
-
     private Difficulty difficulty;
+
+    // --- коллизия ---
+    private CollisionSystem collisionSystem;
 
     // --- параметры спавна блоков ---
     private int    nextLineGroupCount;   // сколько линий спавнить за раз
@@ -118,16 +120,10 @@ public class FirstScreen implements Screen {
         meteorTex      = new Texture(Gdx.files.internal("meteor.png"));
 
         blocks = new ArrayList<>();
-        blocks.add(BlockFactory.createBlock(BlockFactory.BlockType.BREAKABLE,
-            50, 300, breakableTex, 1));
-        blocks.add(BlockFactory.createBlock(BlockFactory.BlockType.UNBREAKABLE,
-            150, 300, unbreakableTex));
-        blocks.add(BlockFactory.createBlock(BlockFactory.BlockType.FALLING,
-            250, 300, fallingTex));
 
         meteors = new ArrayList<>();
-        meteors.add(new Meteor(100, 600, meteorTex, 100f));
-        meteors.add(new Meteor(200, 800, meteorTex, 120f));
+
+        collisionSystem = new CollisionSystem(this::onPlayerDeath);
 
 
         // --- вычисляем число колонок ---
@@ -155,6 +151,13 @@ public class FirstScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        // показ диалога
+        if(pendingGameOverDialog) {
+            pendingGameOverDialog = false;
+            showGameOverDialog();
+            return;
+        }
+
         // Draw your screen here. "delta" is the time since last render in seconds.
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -183,8 +186,6 @@ public class FirstScreen implements Screen {
                 shipH - inset*2
             );
 
-
-
             // --- стрельба при нажатии пробела ---
             boolean isSpacePressed = Gdx.input.isKeyPressed(Input.Keys.SPACE);
             if (isSpacePressed && !wasSpacePressedLastFrame) {
@@ -203,32 +204,12 @@ public class FirstScreen implements Screen {
                 b.move(0, -blockScrollSpeed * delta);
             }
 
-
-            // --- коллизия пересечения корабля с блоками ---
-            for (Block b : blocks) {
-                if (shipRect.overlaps(b.getBounds())) {
-                    gameOver = true;
-                    showGameOverDialog();
-                    return;
-                }
-            }
-
-            // --- коллизия пересечения корабля с метеорами ---
-            for (Meteor m : meteors) {
-                if (shipRect.overlaps(m.getBounds())) {
-                    gameOver = true;
-                    showGameOverDialog();
-                    return;
-                }
-            }
-
             // --- плюс, дополнительная гравитация для специально падающих блоков ---
             for (Block b : blocks) {
                 if (b instanceof FallingBlock) {
                     ((FallingBlock) b).update(delta);
                 }
             }
-
 
             // --- спавн новой линии блоков время от времени ---
             blockSpawnTimer += delta;
@@ -256,55 +237,38 @@ public class FirstScreen implements Screen {
             for (Meteor m : meteors) {
                 m.update(delta);
             }
-
-
-            // --- обработка столкновений пуль с блоками ---
-            List<Bullet> bulletsToRemove = new ArrayList<>();
-            List<Block> blocksToRemove = new ArrayList<>();
-
+            // --- обработка столкновений через CollisionSystem ---
+            // 1) пуля - блок и пуля - метеор
             for (Bullet b : bullets) {
-                Rectangle bRect = new Rectangle(
-                    b.x, b.y,
-                    bulletTexture.getWidth(),
-                    bulletTexture.getHeight()
-                );
+                Rectangle r = new Rectangle(b.x, b.y, bulletTexture.getWidth(), bulletTexture.getHeight());
                 for (Block block : blocks) {
-                    if (bRect.overlaps(block.getBounds())) {
-                        block.onHit();
-                        bulletsToRemove.add(b);
-                        if (block instanceof BreakableBlock
-                            && ((BreakableBlock) block).isDestroyed()) {
-                            blocksToRemove.add(block);
-                        }
-                        break;
+                    if (r.overlaps(block.getBounds())) {
+                        collisionSystem.onCollision(b, block, 1);
                     }
                 }
-            }
-            bullets.removeAll(bulletsToRemove);
-            blocks.removeAll(blocksToRemove);
-
-
-            // --- Обработка попаданий пуль по метеорам ---
-            List<Meteor> meteorsToRemove = new ArrayList<>();
-            for (Bullet b : bullets) {
-                Rectangle bRect = new Rectangle(
-                    b.x, b.y,
-                    bulletTexture.getWidth(),
-                    bulletTexture.getHeight()
-                );
                 for (Meteor m : meteors) {
-                    if (bRect.overlaps(m.getBounds())) {
-                        // если хотите, можно вызвать m.onHit(); для эффектов
-                        meteorsToRemove.add(m);
-                        bulletsToRemove.add(b);
-                        break;  // пуля уничтожает только один метеор
+                    if (r.overlaps(m.getBounds())) {
+                        collisionSystem.onCollision(b, m, 1);
                     }
                 }
             }
-            // --- удаляем метеоры и пули, попавшие в них ---
-            meteors.removeAll(meteorsToRemove);
-            bullets.removeAll(bulletsToRemove);
 
+            // 2) корабль - блок и корабль - метеор
+            for (Block block : blocks) {
+                if (shipRect.overlaps(block.getBounds())) {
+                    collisionSystem.onCollision(playerShip, block, 0);
+                }
+            }
+            for (Meteor m : meteors) {
+                if (shipRect.overlaps(m.getBounds())) {
+                    collisionSystem.onCollision(playerShip, m, 0);
+                }
+            }
+
+            // 3) удаляем все помеченные пули и разрушенные объекты
+            collisionSystem.purgeTaggedBullets(bullets);
+            blocks.removeIf(b -> b instanceof BreakableBlock && ((BreakableBlock)b).isDestroyed());
+            meteors.removeIf(Meteor::isDestroyed);
 
             // --- отрисовка ---
             batch.begin();
@@ -403,6 +367,7 @@ public class FirstScreen implements Screen {
         nextMeteorSpawn  = 5f;
 
         // --- снова разрешим движение ---
+        wasSpacePressedLastFrame = false;
         gameOver = false;
     }
 
@@ -450,10 +415,10 @@ public class FirstScreen implements Screen {
         int shift = random.nextInt(3) - 1;
         gapIndex = MathUtils.clamp(gapIndex + shift, 0, cols - 1);
 
-        // учёт новой линии
+        // --- учёт новой линии ---
         linesSpawned++;
 
-// пересчитываем текущую скорость прокрутки
+        // --- пересчитываем текущую скорость прокрутки ---
         blockScrollSpeed = baseBlockScrollSpeed + linesSpawned * speedIncrementPerLine;
 
     }
@@ -470,6 +435,9 @@ public class FirstScreen implements Screen {
         }
     }
 
+    private boolean pendingGameOverDialog = false;
 
-
+    private void onPlayerDeath() {
+        pendingGameOverDialog = true;
+    }
 }
