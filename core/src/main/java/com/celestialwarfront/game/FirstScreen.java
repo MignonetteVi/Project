@@ -404,6 +404,13 @@ public class FirstScreen implements Screen {
 
         // --- снова разрешим движение ---
         gameOver = false;
+
+        // --- Сброс состояния кнопок движения ---
+        wasSpacePressedLastFrame = false; // Сбрасываем состояние пробела(выстрел)
+
+        // Сбрасываем состояние кнопок(лево и право)
+        boolean left =false;
+        boolean right = false;
     }
 
 
