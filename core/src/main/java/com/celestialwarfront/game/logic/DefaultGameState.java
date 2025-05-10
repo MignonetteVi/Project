@@ -70,9 +70,15 @@ public class DefaultGameState implements GameState {
     @Override
     public void changeHP(int delta) {
         int old = hp;
-        hp = Math.max(0, hp + delta);
+        int newHp = old + delta;
+        if (newHp > 100) newHp = 100;
+        if (newHp < 0)   newHp = 0;
+        hp = newHp;
+
         if (hp != old) {
-            for (StateListener l : listeners) l.onHPChanged(hp);
+            for (StateListener l : listeners) {
+                l.onHPChanged(hp);
+            }
         }
     }
 
