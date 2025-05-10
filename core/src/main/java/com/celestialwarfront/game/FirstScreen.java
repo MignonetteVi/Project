@@ -90,7 +90,7 @@ public class FirstScreen implements Screen {
 
         // --- инициализируем камеру и вьюпорт ---
         camera = new OrthographicCamera();
-        gameViewport = new FitViewport(800, 600, camera);
+        gameViewport = new FitViewport(1920, 1440, camera);
         gameViewport.apply();
 
         // --- инициализируем состояние игры и HUD ---
@@ -211,6 +211,7 @@ public class FirstScreen implements Screen {
             boolean left = Gdx.input.isKeyPressed(Input.Keys.A);
             boolean right = Gdx.input.isKeyPressed(Input.Keys.D);
             playerShip.move(delta, left, right);
+
 
             // --- коллизия корабля с inset-ом в 20% ---
             float inset = shipW * 0.2f;
