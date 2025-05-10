@@ -1,12 +1,107 @@
 package com.celestialwarfront.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import javax.swing.JOptionPane;
+import com.celestialwarfront.game.logic.Difficulty;
+
+public class FirstScreen implements Screen {
+    private GameManager gameManager;
+    private SpriteBatch batch;
+
+    @Override
+    public void show() {
+        batch = new SpriteBatch();
+        gameManager = new GameManager();
+
+        // Difficulty selection dialog
+        String[] options = {"Легкий", "Средний", "Сложный"};
+        int sel = JOptionPane.showOptionDialog(
+            null,
+            "Выберите уровень сложности:",
+            "Сложность",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]
+        );
+
+        Difficulty difficulty = Difficulty.fromIndex(sel);
+        gameManager.initialize(difficulty);
+    }
+
+    @Override
+    public void render(float delta) {
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        gameManager.update(delta);
+
+        batch.begin();
+        gameManager.render(batch);
+        batch.end();
+
+        if (gameManager.isGameOver()) {
+            showGameOverDialog();
+        }
+    }
+
+    private void showGameOverDialog() {
+        int res = JOptionPane.showConfirmDialog(
+            null,
+            "Game Over!\nPlay again?",
+            "Game Over",
+            JOptionPane.YES_NO_OPTION
+        );
+        if (res == JOptionPane.YES_OPTION) {
+            gameManager.restart();
+        } else {
+            Gdx.app.exit();
+        }
+    }
+
+    @Override
+    public void resize(int width, int height) {
+    }
+
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public void hide() {
+    }
+
+    @Override
+    public void dispose() {
+        batch.dispose();
+        gameManager.dispose();
+    }
+}
+
+
+/*
+
+
+
+
+
+package com.celestialwarfront.game;
+
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.utils.Timer;
 import com.celestialwarfront.game.entities.*;
 
 import java.util.ArrayList;
@@ -20,7 +115,9 @@ import com.celestialwarfront.game.patterns.BlockFactory.BlockType;
 import com.celestialwarfront.game.logic.Difficulty;
 
 
-/** First screen of the application. Displayed after the application is created. */
+*/
+/** First screen of the application. Displayed after the application is created. *//*
+
 public class FirstScreen implements Screen {
 
     // --- выбор сложности ---
@@ -402,15 +499,12 @@ public class FirstScreen implements Screen {
         meteorSpawnTimer = 0f;
         nextMeteorSpawn  = 5f;
 
-        // --- снова разрешим движение ---
+
+
+
         gameOver = false;
 
-        // --- Сброс состояния кнопок движения ---
-        wasSpacePressedLastFrame = false; // Сбрасываем состояние пробела(выстрел)
 
-        // Сбрасываем состояние кнопок(лево и право)
-        boolean left =false;
-        boolean right = false;
     }
 
 
@@ -480,3 +574,4 @@ public class FirstScreen implements Screen {
 
 
 }
+*/
