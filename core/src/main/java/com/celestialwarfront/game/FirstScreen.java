@@ -28,6 +28,7 @@ import com.celestialwarfront.game.ui.StateListener;
 
 /** First screen of the application. Displayed after the application is created. */
 public class FirstScreen implements Screen {
+    // --- камера ---
     private OrthographicCamera camera;
     private Viewport gameViewport;
 
@@ -51,12 +52,14 @@ public class FirstScreen implements Screen {
     private Texture bulletTexture;
     private SpriteBatch batch;
 
-
     private boolean wasSpacePressedLastFrame = false;
 
     private List<Block> blocks;
     private List<Meteor> meteors;
-    private Texture breakableTex, unbreakableTex, fallingTex, meteorTex;
+    private List<AmmoBox> ammoBoxes = new ArrayList<>();
+    private Texture breakableTex, unbreakableTex, fallingTex, meteorTex, ammoBoxTex;
+    private float ammoSpawnTimer, nextAmmoSpawn;
+
 
     // --- для случайных спавнов ---
     private Random random;
@@ -118,6 +121,7 @@ public class FirstScreen implements Screen {
             public void onScoreChanged(int s) {}
             public void onLevelChanged(int lvl) {}
             public void onTimeChanged(String t) {}
+            public void onAmmoChanged(int ammo) {}
         });
 
         // --- диалог выбора уровня ---
@@ -160,6 +164,11 @@ public class FirstScreen implements Screen {
         unbreakableTex = new Texture(Gdx.files.internal("block_unbreakable.png"));
         fallingTex     = new Texture(Gdx.files.internal("block_falling.png"));
         meteorTex      = new Texture(Gdx.files.internal("meteor.png"));
+
+
+        ammoBoxTex     = new Texture(Gdx.files.internal("ammo_box.png"));
+        ammoSpawnTimer = 0f;
+        nextAmmoSpawn = 15f + new Random().nextFloat()*10f; //20-25c
 
         blocks = new ArrayList<>();
 
@@ -238,13 +247,18 @@ public class FirstScreen implements Screen {
                 shipH - inset*2
             );
 
-            // --- стрельба при нажатии пробела ---
+            // --- стрельба при нажатии пробела + блокировка---
             boolean isSpacePressed = Gdx.input.isKeyPressed(Input.Keys.SPACE);
             if (isSpacePressed && !wasSpacePressedLastFrame) {
-                Bullet bullet = bulletFactory.createBullet(playerShip.x, playerShip.y);
-                bullets.add(bullet);
+                if (gameState.getAmmo() > 0) {
+                    gameState.changeAmmo(-1);
+                    bullets.add(bulletFactory.createBullet(playerShip.x, playerShip.y));
+                } else {
+                    hud.flashAmmo();
+                }
             }
             wasSpacePressedLastFrame = isSpacePressed;
+
 
             // --- движение снарядов ---
             for (Bullet bullet : bullets) {
@@ -289,6 +303,20 @@ public class FirstScreen implements Screen {
             for (Meteor m : meteors) {
                 m.update(delta);
             }
+
+            // --- боеприпасы ---
+            ammoSpawnTimer += delta;
+            if (ammoSpawnTimer >= nextAmmoSpawn) {
+                float x = random.nextFloat() * (Gdx.graphics.getWidth() - ammoBoxTex.getWidth());
+                ammoBoxes.add(new AmmoBox(x, Gdx.graphics.getHeight(), ammoBoxTex, 100f));
+                ammoSpawnTimer = 0f;
+                nextAmmoSpawn = 15f + random.nextFloat()*10f;
+            }
+
+            // --- обновляем все ящики ---
+            for (AmmoBox box : ammoBoxes) box.update(delta);
+
+
             // --- обработка столкновений через CollisionSystem ---
             // 1) пуля - блок и пуля - метеор
             for (Bullet b : bullets) {
@@ -317,10 +345,19 @@ public class FirstScreen implements Screen {
                 }
             }
 
-            // 3) удаляем все помеченные пули и разрушенные объекты
+            // 3) с ящиками боеприпасов
+            for (AmmoBox box : ammoBoxes) {
+                if (!box.isPicked() && shipRect.overlaps(box.getBounds())) {
+                    box.pick();
+                    gameState.changeAmmo(+ 5);
+                }
+            }
+
+            // 4) удаляем все помеченные пули и разрушенные объекты
             collisionSystem.purgeTaggedBullets(bullets);
             blocks.removeIf(Block::isDestroyed);
             meteors.removeIf(Meteor::isDestroyed);
+            ammoBoxes.removeIf(b -> b.isPicked() || b.y + ammoBoxTex.getHeight() < 0);
 
             // --- отрисовка ---
             batch.begin();
@@ -341,6 +378,9 @@ public class FirstScreen implements Screen {
             }
             for (Meteor m : meteors) {
                 m.render(batch);
+            }
+            for (AmmoBox box : ammoBoxes) {
+                box.render(batch);
             }
 
             batch.end();

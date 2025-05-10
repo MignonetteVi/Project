@@ -1,4 +1,5 @@
 package com.celestialwarfront.game.ui;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -9,7 +10,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 public class Hud implements StateListener {
     private final Stage stage;
-
+    private final Label ammoLabel;
     private final Label scoreLabel;
     private final Label hpLabel;
     private final Label levelLabel;
@@ -23,6 +24,7 @@ public class Hud implements StateListener {
 
         scoreLabel  = new Label("Score: 0", ls);
         hpLabel = new Label("HP: 100", ls);
+        ammoLabel  = new Label("Ammo: 15", ls);
         levelLabel  = new Label("Level: 0", ls);
         timerLabel  = new Label("Time: 00:00", ls);
 
@@ -30,6 +32,8 @@ public class Hud implements StateListener {
         table.top().left();
         table.setFillParent(true);
 
+        table.add(ammoLabel).pad(8);
+        table.row();
         table.add(scoreLabel).pad(8);
         table.row();
         table.add(hpLabel).pad(8);
@@ -68,6 +72,21 @@ public class Hud implements StateListener {
         levelLabel.addAction(Actions.sequence(
             Actions.scaleTo(1.5f, 1.5f, 0.1f),
             Actions.scaleTo(1f, 1f, 0.1f)
+        ));
+    }
+
+    @Override
+    public void onAmmoChanged(int ammo) {
+        ammoLabel.setText("Ammo: " + ammo);
+        // можно добавить мерцание или другие эффекты
+    }
+
+    public void flashAmmo() {
+        ammoLabel.addAction(Actions.sequence(
+                Actions.color(Color.RED, 0f),
+                Actions.color(Color.WHITE, 0.2f),
+                Actions.color(Color.RED, 0f),
+                Actions.color(Color.WHITE, 0.2f)
         ));
     }
 

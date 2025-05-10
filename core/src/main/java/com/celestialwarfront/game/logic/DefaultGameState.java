@@ -19,6 +19,7 @@ public class DefaultGameState implements GameState {
     private int hp;
     private int level;
     private float elapsed;
+    private int ammo;
 
     public DefaultGameState() {
         prefs = Gdx.app.getPreferences(PREFS_NAME);
@@ -26,6 +27,7 @@ public class DefaultGameState implements GameState {
         score = 0;
         hp = 100;
         elapsed = 0f;
+        ammo = 15;
     }
 
     @Override public void addListener(StateListener l) { listeners.add(l); }
@@ -86,10 +88,12 @@ public class DefaultGameState implements GameState {
         score = 0;
         hp = 100;
         elapsed = 0f;
+        ammo = 15;
 
         for (StateListener l : listeners) {
             l.onScoreChanged(score);
             l.onHPChanged(hp);
+            l.onAmmoChanged(ammo);
             l.onTimeChanged(getTimeString());
         }
     }
@@ -101,6 +105,22 @@ public class DefaultGameState implements GameState {
         prefs.flush();
         for (StateListener l : listeners) {
             l.onLevelChanged(level);
+        }
+    }
+
+    @Override
+    public int getAmmo() {
+        return ammo;
+    }
+
+    @Override
+    public void changeAmmo(int delta) {
+        int old = ammo;
+        ammo = Math.max(0, ammo + delta);
+        if (ammo != old) {
+            for (StateListener l : listeners) {
+                l.onAmmoChanged(ammo);
+            }
         }
     }
 

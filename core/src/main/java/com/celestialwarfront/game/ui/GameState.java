@@ -8,10 +8,13 @@ public interface GameState {
     int getHP();
     int getLevel();
     String getTimeString();
+    int getAmmo();
 
+    void changeAmmo(int delta);
     void changeScore(int delta);
     void changeHP(int delta);
     void updateTimer(float delta);
 
     void resetSession();
+
 }

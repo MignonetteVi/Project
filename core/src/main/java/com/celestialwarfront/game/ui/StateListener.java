@@ -5,4 +5,5 @@ public interface StateListener {
     void onHPChanged(int newHP);
     void onLevelChanged(int newLevel);
     void onTimeChanged(String timeString);
+    void onAmmoChanged(int ammo);
 }
