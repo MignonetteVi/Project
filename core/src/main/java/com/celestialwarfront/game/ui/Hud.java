@@ -15,11 +15,12 @@ public class Hud implements StateListener {
     private final Label hpLabel;
     private final Label levelLabel;
     private final Label timerLabel;
+    private final BitmapFont font;
 
     public Hud() {
         stage = new Stage(new ScreenViewport());
 
-        BitmapFont font = new BitmapFont();
+        font = new BitmapFont(); // Сохраняем шрифт в поле класса
         Label.LabelStyle ls = new Label.LabelStyle(font, Color.WHITE);
 
         scoreLabel  = new Label("Score: 0", ls);
@@ -43,6 +44,9 @@ public class Hud implements StateListener {
         table.add(timerLabel).pad(8);
 
         stage.addActor(table);
+    }
+    public BitmapFont getFont() {
+        return font;
     }
 
     public void draw() {
@@ -98,5 +102,7 @@ public class Hud implements StateListener {
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
     }
+
+
 }
 

@@ -1,12 +1,12 @@
 package com.celestialwarfront.game;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.*;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.Input;
-import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
@@ -26,6 +26,19 @@ import java.util.Random;
 import javax.swing.JOptionPane;
 
 public class GameManager {
+    private Texture pauseBgTexture;
+    private Texture pauseContinueTexture;
+    private Texture pauseRestartTexture;
+    private Texture pauseExitTexture;
+    // Pause menu
+    private boolean isPaused;
+    private Rectangle pauseBackground;
+    private Rectangle resumeButton;
+    private Rectangle mainMenuButton;
+    private Rectangle exitButton;
+    private Texture pauseTexture; // Для фона меню паузы
+
+
     // Singleton instance
     private static GameManager instance;
 
@@ -83,6 +96,31 @@ public class GameManager {
 
     // Facade initialization method
     private void initialize() {
+        pauseBgTexture = new Texture(Gdx.files.internal("pause_bg.png"));
+        pauseContinueTexture = new Texture(Gdx.files.internal("continue.png"));
+        pauseRestartTexture = new Texture(Gdx.files.internal("restart_btn.png"));
+        pauseExitTexture = new Texture(Gdx.files.internal("btn_exit.png"));
+        // Initialize pause menu
+        isPaused = false;
+        float buttonWidth = 400f;
+        float buttonHeight = 150f;
+        float centerX = 1920/2 - buttonWidth/2;
+        resumeButton = new Rectangle(centerX, 450, buttonWidth, buttonHeight);
+        mainMenuButton = new Rectangle(centerX, 300, buttonWidth, buttonHeight);
+        exitButton = new Rectangle(centerX, 150, buttonWidth, buttonHeight);
+        /*float menuWidth = 500;
+        float menuHeight = 400;
+        float centerX = (1920 - menuWidth) / 2;
+        float centerY = (1080 - menuHeight) / 2;*/
+
+
+
+// Создаем простую текстуру для фона меню паузы
+        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0, 0, 0, 0.7f);
+        pixmap.fill();
+        pauseTexture = new Texture(pixmap);
+        pixmap.dispose();
         // Initialize camera and viewport
         camera = new OrthographicCamera();
         gameViewport = new FitViewport(1920, 1440, camera);
@@ -112,6 +150,8 @@ public class GameManager {
             public void onLevelChanged(int lvl) {}
             public void onTimeChanged(String t) {}
             public void onAmmoChanged(int ammo) {}
+
+
         });
 
         // Initialize collections
@@ -199,6 +239,12 @@ public class GameManager {
     }
 
     public void update(float delta) {
+        // Pause handling
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            isPaused = !isPaused;
+        }
+
+        if (isPaused) return; // Не обновляем игру на паузе
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
@@ -416,6 +462,23 @@ public class GameManager {
             hp.render(batch);
         }
 
+        // Draw pause menu if game is paused
+        if (isPaused) {
+            // Полупрозрачный фон
+            batch.setColor(1, 1, 1, 0.5f);
+            batch.draw(pauseTexture, 0, 0, 1920, 1080);
+            batch.setColor(Color.WHITE);
+
+            // Фон меню
+            batch.draw(pauseBgTexture, pauseBackground.x, pauseBackground.y,
+                pauseBackground.width, pauseBackground.height);
+
+            // Отрисовка кнопок
+            drawPauseMenuButton(batch, resumeButton, pauseContinueTexture);
+            drawPauseMenuButton(batch, mainMenuButton, pauseRestartTexture);
+            drawPauseMenuButton(batch, exitButton, pauseExitTexture);
+        }
+
         batch.end();
     }
 
@@ -434,6 +497,10 @@ public class GameManager {
         meteorTex.dispose();
         ammoBoxTex.dispose();
         healthPackTex.dispose();
+        pauseBgTexture.dispose();
+        pauseContinueTexture.dispose();
+        pauseRestartTexture.dispose();
+        pauseExitTexture.dispose();
     }
 
     private void showGameOverDialog() {
@@ -530,5 +597,50 @@ public class GameManager {
         for (int i = 0; i < count; i++) {
             spawnBlockLineAt(screenH + i * blockH);
         }
+    }
+
+    private void drawPauseMenuButton(SpriteBatch batch, Rectangle rect, Texture texture) {
+        boolean isHovered = isMouseOver(rect);
+        if (isHovered) {
+            batch.setColor(1, 1, 1, 0.8f);
+        }
+        batch.draw(texture, rect.x, rect.y, rect.width, rect.height);
+        batch.setColor(Color.WHITE);
+    }
+
+    private boolean isMouseOver(Rectangle rect) {
+        Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        camera.unproject(mousePos);
+        return rect.contains(mousePos.x, mousePos.y);
+    }
+
+    private void handlePauseMenuInput() {
+        if (!isPaused) return;
+
+        if (Gdx.input.justTouched()) {
+            Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+            camera.unproject(touchPos);
+
+            if (resumeButton.contains(touchPos.x, touchPos.y)) {
+                isPaused = false;
+            }
+            else if (mainMenuButton.contains(touchPos.x, touchPos.y)) {
+                isPaused = false;
+                // Здесь должен быть переход в главное меню
+                // Например: game.setScreen(new MainMenuScreen(game));
+            }
+            else if (exitButton.contains(touchPos.x, touchPos.y)) {
+                Gdx.app.exit();
+            }
+        }
+    }
+    public OrthographicCamera getCamera() {
+        return camera;
+    }
+    public Hud getHud() {
+        return hud;
+    }
+    public boolean isPaused() {
+        return isPaused;
     }
 }
