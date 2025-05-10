@@ -57,14 +57,12 @@ public class FirstScreen implements Screen {
     private List<Block> blocks;
     private List<Meteor> meteors;
     private List<AmmoBox> ammoBoxes = new ArrayList<>();
-    private Texture breakableTex, unbreakableTex, fallingTex, meteorTex, ammoBoxTex;
-    private float ammoSpawnTimer, nextAmmoSpawn;
-
+    private List<HealthPack> healthPacks = new ArrayList<>();
+    private Texture breakableTex, unbreakableTex, fallingTex, meteorTex, ammoBoxTex, healthPackTex;
 
     // --- для случайных спавнов ---
     private Random random;
-    private float meteorSpawnTimer;
-    private float nextMeteorSpawn; // время до следующего метеора
+    private float meteorSpawnTimer, nextMeteorSpawn, ammoSpawnTimer, nextAmmoSpawn, healthSpawnTimer = 0f, nextHealthSpawn;
 
     // --- для спавна строк блоков ---
     private float blockSpawnTimer;
@@ -165,10 +163,11 @@ public class FirstScreen implements Screen {
         fallingTex     = new Texture(Gdx.files.internal("block_falling.png"));
         meteorTex      = new Texture(Gdx.files.internal("meteor.png"));
 
-
+        healthPackTex    = new Texture(Gdx.files.internal("health_pack.png"));
         ammoBoxTex     = new Texture(Gdx.files.internal("ammo_box.png"));
         ammoSpawnTimer = 0f;
         nextAmmoSpawn = 15f + new Random().nextFloat()*10f; //20-25c
+        nextHealthSpawn  = 20f + new Random().nextFloat() * 20f; //20-40c
 
         blocks = new ArrayList<>();
 
@@ -316,6 +315,18 @@ public class FirstScreen implements Screen {
             // --- обновляем все ящики ---
             for (AmmoBox box : ammoBoxes) box.update(delta);
 
+            // --- аптечки ---
+            healthSpawnTimer += delta;
+            if (healthSpawnTimer >= nextHealthSpawn) {
+                float x = random.nextFloat() * (Gdx.graphics.getWidth() - healthPackTex.getWidth());
+                healthPacks.add(new HealthPack(x, Gdx.graphics.getHeight(), healthPackTex, 100f));
+                healthSpawnTimer = 0f;
+                nextHealthSpawn = 20f + random.nextFloat() * 20f;
+            }
+            // --- обновляем все аптечки ---
+            for (HealthPack hp : healthPacks) {
+                hp.update(delta);
+            }
 
             // --- обработка столкновений через CollisionSystem ---
             // 1) пуля - блок и пуля - метеор
@@ -353,7 +364,15 @@ public class FirstScreen implements Screen {
                 }
             }
 
-            // 4) удаляем все помеченные пули и разрушенные объекты
+            // 4) с аптечками
+            for (HealthPack hp : healthPacks) {
+                if (!hp.isPicked() && shipRect.overlaps(hp.getBounds())) {
+                    hp.pick();
+                    gameState.changeHP(+ 30);
+                }
+            }
+
+            // 5) удаляем все помеченные пули и разрушенные объекты
             collisionSystem.purgeTaggedBullets(bullets);
             blocks.removeIf(Block::isDestroyed);
             meteors.removeIf(Meteor::isDestroyed);
@@ -381,6 +400,9 @@ public class FirstScreen implements Screen {
             }
             for (AmmoBox box : ammoBoxes) {
                 box.render(batch);
+            }
+            for (HealthPack hp : healthPacks) {
+                hp.render(batch);
             }
 
             batch.end();
