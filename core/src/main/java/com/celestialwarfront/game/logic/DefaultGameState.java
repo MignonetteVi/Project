@@ -22,7 +22,7 @@ public class DefaultGameState implements GameState {
 
     public DefaultGameState() {
         prefs = Gdx.app.getPreferences(PREFS_NAME);
-        level = prefs.getInteger(KEY_LEVEL, 1);
+        level = prefs.getInteger(KEY_LEVEL, 0);
         score = 0;
         hp = 100;
         elapsed = 0f;
@@ -44,14 +44,24 @@ public class DefaultGameState implements GameState {
     @Override
     public void changeScore(int delta) {
         score += delta;
-        for (StateListener l : listeners) l.onScoreChanged(score);
+        listeners.forEach(l -> l.onScoreChanged(score));
 
-        // авто-повышение уровня за каждые мастер*10 очков
-        while (score >= level * 10) {
+        // Повышаем уровень, пока достаточно очков для следующего
+        while (score >= thresholdFor(level + 1)) {
             level++;
             prefs.putInteger(KEY_LEVEL, level);
             prefs.flush();
-            for (StateListener l : listeners) l.onLevelChanged(level);
+            listeners.forEach(l -> l.onLevelChanged(level));
+        }
+    }
+
+    private int thresholdFor(int targetLevel) {
+        if (targetLevel <= 1) {
+            return 10; // чтобы level стал 1 нужно 10
+        } else if (targetLevel == 2) {
+            return 30; // чтобы level ствл 2 нужно 30
+        } else { // начиная с третьего: 30 + (уровень-2) * 10
+            return 30 + (targetLevel - 2) * 10;
         }
     }
 
@@ -81,6 +91,16 @@ public class DefaultGameState implements GameState {
             l.onScoreChanged(score);
             l.onHPChanged(hp);
             l.onTimeChanged(getTimeString());
+        }
+    }
+
+    // --- ДЛЯ РАЗРАБОТЧИКА ---
+    public void resetLevel() {
+        level = 0;
+        prefs.putInteger(KEY_LEVEL, level);
+        prefs.flush();
+        for (StateListener l : listeners) {
+            l.onLevelChanged(level);
         }
     }
 

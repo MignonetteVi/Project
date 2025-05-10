@@ -98,11 +98,23 @@ public class FirstScreen implements Screen {
         hud = new Hud();
         gameState.addListener(hud);
 
+        // --- обновим HUD, чтобы он сразу отобразил текущее level/score/hp ---
+        hud.onScoreChanged(gameState.getScore());
+        hud.onHPChanged(gameState.getHP());
+        hud.onLevelChanged(gameState.getLevel());
+        hud.onTimeChanged(gameState.getTimeString());
+
+
         // --- слушаем HP и при 0 ставим Game Over ---
         gameState.addListener(new StateListener() {
-            @Override public void onHPChanged(int newHP) {
-                if (newHP <= 0) pendingGameOverDialog = true;
-            }
+          @Override public void onHPChanged(int newHP) {
+              if (newHP <= 0) {
+                  // переключаем признак конца игры
+                  gameOver = true;
+                  // и ставим флаг на показ диалога
+                  pendingGameOverDialog = true;
+              }
+          }
             public void onScoreChanged(int s) {}
             public void onLevelChanged(int lvl) {}
             public void onTimeChanged(String t) {}
@@ -187,8 +199,7 @@ public class FirstScreen implements Screen {
         gameState.updateTimer(delta);
 
         // показ диалога
-        if(pendingGameOverDialog) {
-            pendingGameOverDialog = false;
+        if (pendingGameOverDialog) {
             showGameOverDialog();
             return;
         }
@@ -205,6 +216,11 @@ public class FirstScreen implements Screen {
         float scale   = blockW / origW;
         float shipW   = origW * scale;  // blockW
         float shipH   = origH * scale;
+
+        // СБРОС НА R (ФУНКЦИОНАЛ РАЗРАБОТЧИКА)
+        if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
+            gameState.resetLevel();
+        }
 
         if (!gameOver) {
             // --- движение корабля ---
@@ -303,7 +319,7 @@ public class FirstScreen implements Screen {
 
             // 3) удаляем все помеченные пули и разрушенные объекты
             collisionSystem.purgeTaggedBullets(bullets);
-            blocks.removeIf(b -> b instanceof BreakableBlock && ((BreakableBlock)b).isDestroyed());
+            blocks.removeIf(Block::isDestroyed);
             meteors.removeIf(Meteor::isDestroyed);
 
             // --- отрисовка ---

@@ -30,9 +30,10 @@ public abstract class Block implements IDamageable {
         return destroyed;
     }
 
-    protected void markDestroyed() {
+    public void markDestroyed() {
         this.destroyed = true;
     }
+
 
     public void move(float dx, float dy) {
         this.x += dx;

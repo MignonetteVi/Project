@@ -14,8 +14,12 @@ public class PlayerMeteorCollisionHandler extends AbstractCollisionHandler {
     @Override
     public void handle(CollisionEvent event) {
         if (event.collider instanceof PlayerShip
-            && event.target instanceof Meteor) {
+                && event.target instanceof Meteor) {
+
+            Meteor meteor = (Meteor)event.target;
             gameState.changeHP(-20);
+            meteor.applyDamage(event.damage);
+
         } else {
             passToNext(event);
         }

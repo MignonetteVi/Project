@@ -15,7 +15,9 @@ public class PlayerBlockCollisionHandler extends AbstractCollisionHandler {
     public void handle(CollisionEvent event) {
         if (event.collider instanceof PlayerShip
             && event.target instanceof Block) {
-            gameState.changeHP(-10);
+            Block block = (Block)event.target;
+            gameState.changeHP(-50);
+            block.markDestroyed();
         } else {
             passToNext(event);
         }
