@@ -1,6 +1,7 @@
 package com.celestialwarfront.game.collisions;
 
 import com.celestialwarfront.game.entities.Bullet;
+import com.celestialwarfront.game.ui.GameState;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -9,17 +10,18 @@ public class CollisionSystem {
     private final CollisionHandler chain;
     private static final Set<Bullet> bulletsToRemove = new HashSet<>();
 
-    public CollisionSystem(Runnable gameOverCallback) {
-        PlayerBlockCollisionHandler  hb = new PlayerBlockCollisionHandler(gameOverCallback);
-        PlayerMeteorCollisionHandler hm = new PlayerMeteorCollisionHandler(gameOverCallback);
-        BulletCollisionHandler       hb2= new BulletCollisionHandler();
-        MeteorCollisionHandler       hm2= new MeteorCollisionHandler();
+    public CollisionSystem(GameState gameState) {
+        PlayerBlockCollisionHandler pbh = new PlayerBlockCollisionHandler(gameState);
+        PlayerMeteorCollisionHandler pmh = new PlayerMeteorCollisionHandler(gameState);
 
-        hb.setNext(hm);
-        hm.setNext(hb2);
-        hb2.setNext(hm2);
+        BulletCollisionHandler bch = new BulletCollisionHandler(gameState);
+        MeteorCollisionHandler mch = new MeteorCollisionHandler(gameState);
 
-        this.chain = hb;
+        pbh.setNext(pmh);
+        pmh.setNext(bch);
+        bch.setNext(mch);
+
+        this.chain = pbh;
     }
 
     public void onCollision(Object collider, Object target, int damage) {

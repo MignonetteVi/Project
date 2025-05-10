@@ -1,6 +1,9 @@
 package com.celestialwarfront.game;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
@@ -8,21 +11,25 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.celestialwarfront.game.entities.*;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import javax.swing.JOptionPane;
 import com.badlogic.gdx.math.Rectangle;
+import com.celestialwarfront.game.logic.DefaultGameState;
 import com.celestialwarfront.game.logic.Level;
 import com.celestialwarfront.game.patterns.*;
 import com.celestialwarfront.game.patterns.BlockFactory.BlockType;
 import com.celestialwarfront.game.logic.Difficulty;
 import com.celestialwarfront.game.collisions.CollisionSystem;
+import com.celestialwarfront.game.ui.Hud;
+import com.celestialwarfront.game.ui.StateListener;
 
 
 /** First screen of the application. Displayed after the application is created. */
 public class FirstScreen implements Screen {
+    private OrthographicCamera camera;
+    private Viewport gameViewport;
 
     // --- выбор сложности ---
     private Difficulty difficulty;
@@ -72,11 +79,34 @@ public class FirstScreen implements Screen {
     // сколько уже сгенерировано линий
     private int linesSpawned;
 
+    private DefaultGameState gameState;
+    private Hud hud;
+
     private boolean gameOver; // флаг конца игры
 
     @Override
     public void show() {
         // Prepare your screen here.
+
+        // --- инициализируем камеру и вьюпорт ---
+        camera = new OrthographicCamera();
+        gameViewport = new FitViewport(800, 600, camera);
+        gameViewport.apply();
+
+        // --- инициализируем состояние игры и HUD ---
+        gameState = new DefaultGameState();
+        hud = new Hud();
+        gameState.addListener(hud);
+
+        // --- слушаем HP и при 0 ставим Game Over ---
+        gameState.addListener(new StateListener() {
+            @Override public void onHPChanged(int newHP) {
+                if (newHP <= 0) pendingGameOverDialog = true;
+            }
+            public void onScoreChanged(int s) {}
+            public void onLevelChanged(int lvl) {}
+            public void onTimeChanged(String t) {}
+        });
 
         // --- диалог выбора уровня ---
         String[] options = {"Легкий", "Средний", "Сложный"};
@@ -123,7 +153,7 @@ public class FirstScreen implements Screen {
 
         meteors = new ArrayList<>();
 
-        collisionSystem = new CollisionSystem(this::onPlayerDeath);
+        collisionSystem = new CollisionSystem(gameState);
 
 
         // --- вычисляем число колонок ---
@@ -151,6 +181,11 @@ public class FirstScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
+
+        gameState.updateTimer(delta);
+
         // показ диалога
         if(pendingGameOverDialog) {
             pendingGameOverDialog = false;
@@ -279,6 +314,8 @@ public class FirstScreen implements Screen {
                 shipW, shipH
             );
 
+            hud.draw();
+
             for (Bullet bullet : bullets) {
                 batch.draw(bulletTexture, bullet.x, bullet.y);
             }
@@ -290,13 +327,17 @@ public class FirstScreen implements Screen {
             }
 
             batch.end();
+
         }
 
     }
 
     @Override
     public void resize(int width, int height) {
-        // Resize your screen here. The parameters represent the new window size.
+        // обновляем игровой вьюпорт
+        gameViewport.update(width, height, true);
+        // и HUD
+        hud.resize(width, height);
     }
 
     @Override
@@ -337,39 +378,31 @@ public class FirstScreen implements Screen {
     }
 
     private void restartGame() {
-        // --- сброс позиции корабля и пуль, как было ---
+        // --- сброс мира ---
         playerShip.setPosition(0);
         bullets.clear();
-
-        // --- сброс блоков и спавн первой группы заново ---
         blocks.clear();
-        // --- восстановить исходное число линий группы ---
         nextLineGroupCount = (difficulty == Difficulty.HARD ? 3 : 1);
-        // --- сброс и перерасчёт параметров коридора ---
-        gapIndex           = cols / 2;
-        gapLinesRemaining  = 5;
-        linesSpawned       = 0;
-
-        // --- сброс таймеров спавна линий ---
-        blockSpawnTimer    = 0f;
-        nextBlockSpawn     = minSpawnInterval
-            + random.nextFloat() * (maxSpawnInterval - minSpawnInterval);
-
-        // --- сброс скорости в базовое значение ---
-        blockScrollSpeed   = baseBlockScrollSpeed;
-
-        // --- и сразу заспавнить первые линии ---
+        gapIndex = cols/2;
+        gapLinesRemaining = 5;
+        linesSpawned = 0;
+        blockSpawnTimer = 0f;
+        nextBlockSpawn = minSpawnInterval + random.nextFloat()*(maxSpawnInterval-minSpawnInterval);
+        blockScrollSpeed = baseBlockScrollSpeed;
         spawnBlockGroup(nextLineGroupCount);
-
-        // --- сброс метеоров и их таймера ---
         meteors.clear();
         meteorSpawnTimer = 0f;
-        nextMeteorSpawn  = 5f;
+        nextMeteorSpawn = 5f;
 
-        // --- снова разрешим движение ---
+        // --- сброс состояния игры (HP, score, timer), но не уровня ---
+        gameState.resetSession();
+
+        // --- очистка флагов ---
+        pendingGameOverDialog = false;
         wasSpacePressedLastFrame = false;
         gameOver = false;
     }
+
 
 
     // --- спавнит одну горизонтальную линию блоков сверху на экране ---
@@ -440,4 +473,6 @@ public class FirstScreen implements Screen {
     private void onPlayerDeath() {
         pendingGameOverDialog = true;
     }
+
+
 }
