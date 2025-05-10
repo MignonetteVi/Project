@@ -23,7 +23,7 @@ public class Hud implements StateListener {
 
         scoreLabel  = new Label("Score: 0", ls);
         hpLabel = new Label("HP: 100", ls);
-        levelLabel  = new Label("Level: 1", ls);
+        levelLabel  = new Label("Level: 0", ls);
         timerLabel  = new Label("Time: 00:00", ls);
 
         Table table = new Table();
