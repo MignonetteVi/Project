@@ -38,6 +38,10 @@ public class GameManager {
     private Rectangle exitButton;
     private Texture pauseTexture; // Для фона меню паузы
 
+    private Viewport menuViewport;
+    private OrthographicCamera menuCamera;
+
+
 
     // Singleton instance
     private static GameManager instance;
@@ -96,6 +100,8 @@ public class GameManager {
 
     // Facade initialization method
     private void initialize() {
+        menuCamera = new OrthographicCamera();
+        menuViewport = new FitViewport(1920, 1080, menuCamera);
         pauseBgTexture = new Texture(Gdx.files.internal("pause_bg.png"));
         pauseContinueTexture = new Texture(Gdx.files.internal("continue_btn.png"));
         pauseRestartTexture = new Texture(Gdx.files.internal("restart_btn.png"));
@@ -105,10 +111,12 @@ public class GameManager {
         float buttonWidth = 400f;
         float buttonHeight = 150f;
         float centerX = (1920 - buttonWidth) / 2;
-        resumeButton = new Rectangle(centerX, 450, buttonWidth, buttonHeight);
-        mainMenuButton = new Rectangle(centerX, 300, buttonWidth, buttonHeight);
-        exitButton = new Rectangle(centerX, 150, buttonWidth, buttonHeight);
-        pauseBackground = new Rectangle(centerX - 50, 100, buttonWidth + 100, 500);
+        float centerY = Gdx.graphics.getHeight() / 2;  // Добавляем centerY
+        resumeButton = new Rectangle(710, 540, 500, 100);   // CENTER: 960x540
+        mainMenuButton = new Rectangle(710, 400, 500, 100);
+        exitButton = new Rectangle(710, 260, 500, 100);
+        pauseBackground = new Rectangle(centerX - 50, centerY - 250, buttonWidth + 100, 500);
+
 
 
 
@@ -236,9 +244,10 @@ public class GameManager {
     }
 
     public void update(float delta) {
-        // Pause handling
+        // Пауза по ESC
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            isPaused = !isPaused;
+            isPaused = !isPaused; // Переключаем паузу
+            Gdx.app.log("GameManager", "Paused: " + isPaused);
         }
 
         if (isPaused) {
@@ -461,9 +470,10 @@ public class GameManager {
         // Draw pause menu if game is paused
         if (isPaused) {
             // Полупрозрачный фон
+            batch.setProjectionMatrix(menuCamera.combined);
             batch.setColor(1, 1, 1, 0.5f);
             batch.draw(pauseTexture, 0, 0, 1920, 1080);
-            batch.setColor(Color.WHITE);
+           /* batch.setColor(Color.WHITE);*/
 
             // Фон меню
             batch.draw(pauseBgTexture, pauseBackground.x, pauseBackground.y,
@@ -473,13 +483,23 @@ public class GameManager {
             drawPauseMenuButton(batch, resumeButton, pauseContinueTexture);
             drawPauseMenuButton(batch, mainMenuButton, pauseRestartTexture);
             drawPauseMenuButton(batch, exitButton, pauseExitTexture);
-        }
 
+            batch.setColor(1, 0, 0, 0.3f);
+            batch.draw(pauseContinueTexture, resumeButton.x, resumeButton.y,
+                resumeButton.width, resumeButton.height);
+            batch.draw(pauseRestartTexture, mainMenuButton.x, mainMenuButton.y,
+                mainMenuButton.width, mainMenuButton.height);
+            batch.draw(pauseExitTexture, exitButton.x, exitButton.y,
+                exitButton.width, exitButton.height);
+            batch.setColor(Color.WHITE);
+        }
+        batch.setProjectionMatrix(camera.combined);
         batch.end();
     }
 
     public void resize(int width, int height) {
-        gameViewport.update(width, height, true);
+        gameViewport.update(width, height, true);  // Для игры (1920x1440)
+        menuViewport.update(width, height, true); // Для меню (1920x1080)
         hud.resize(width, height);
     }
 
@@ -586,6 +606,7 @@ public class GameManager {
 
     private void spawnBlockGroup(int lines) {
         float screenH = Gdx.graphics.getHeight();
+
         float blockH = breakableTex.getHeight();
 
         int count = Math.min(lines, 2);
@@ -605,36 +626,35 @@ public class GameManager {
     }
 
     private boolean isMouseOver(Rectangle rect) {
-        Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        camera.unproject(mousePos);
-        return rect.contains(mousePos.x, mousePos.y);
+        Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        menuViewport.unproject(touchPos); // Используем menuViewport!
+        return rect.contains(touchPos.x, touchPos.y);
     }
 
     private void handlePauseMenuInput() {
-        if (!isPaused) return;  // Если паузы нет, не обрабатываем ввод
+        if (!isPaused || !Gdx.input.justTouched()) return;
 
-        if (Gdx.input.justTouched()) {
-            Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-            camera.unproject(touchPos);
+        // Получаем координаты касания
+        Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        gameViewport.unproject(touchPos);
 
-            // Проверяем, была ли нажата кнопка "Продолжить"
-            if (resumeButton.contains(touchPos.x, touchPos.y)) {
-                isPaused = false; // Снимаем паузу
-                Gdx.app.log("PauseMenu", "Continue button pressed");
-            }
-            // Проверяем, была ли нажата кнопка "Рестарт"
-            else if (mainMenuButton.contains(touchPos.x, touchPos.y)) {
-                isPaused = false; // Снимаем паузу
-                restartGame(); // Рестарт игры
-                Gdx.app.log("PauseMenu", "Restart button pressed");
-            }
-            // Проверяем, была ли нажата кнопка "Выйти"
-            else if (exitButton.contains(touchPos.x, touchPos.y)) {
-                Gdx.app.exit(); // Закрыть игру
-                Gdx.app.log("PauseMenu", "Exit button pressed");
-            }
+        // Проверяем кнопки с визуализацией зон нажатия
+        if (resumeButton.contains(touchPos.x, touchPos.y)) {
+            isPaused = false;
+            Gdx.app.log("INPUT", "Continue pressed");
+        }
+        else if (mainMenuButton.contains(touchPos.x, touchPos.y)) {
+            restartGame();
+            isPaused = false;
+            Gdx.app.log("INPUT", "Restart pressed");
+        }
+        else if (exitButton.contains(touchPos.x, touchPos.y)) {
+            Gdx.app.log("INPUT", "Exit pressed");
+            Gdx.app.exit();
         }
     }
+
+
 
 
     public OrthographicCamera getCamera() {
