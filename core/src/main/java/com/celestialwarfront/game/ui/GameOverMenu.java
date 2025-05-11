@@ -61,11 +61,12 @@ public class GameOverMenu {
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
         // Рисуем полупрозрачный черный фон
-        batch.setColor(0, 0, 0, 0.7f); // 70% прозрачности
-        batch.draw(backgroundTexture, 0, 0, viewport.getWorldWidth(), viewport.getWorldHeight());
-        batch.setColor(Color.WHITE); // Сбрасываем цвет
+        // Отрисовка фона с проверкой
 
-        // Рисуем кнопки
+        batch.draw(backgroundTexture, 0, 0, 1920, 1080);  // Рисуем фон
+        batch.setColor(Color.WHITE);  // Сбрасываем цвет
+
+        // Отрисовка кнопок
         drawButton(batch, restartButton, restartButtonTexture);
         drawButton(batch, exitButton, exitButtonTexture);
     }
