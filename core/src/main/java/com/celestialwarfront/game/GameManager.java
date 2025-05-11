@@ -108,14 +108,18 @@ public class GameManager {
         pauseExitTexture = new Texture(Gdx.files.internal("btn_exit.png"));
         // Initialize pause menu
         isPaused = false;
-        float buttonWidth = 400f;
-        float buttonHeight = 150f;
+        // Размеры кнопок
+        float buttonWidth = 500f;
+        float buttonHeight = 100f;
+        // Центральное позиционирование (для 1920x1080)
         float centerX = (1920 - buttonWidth) / 2;
-        float centerY = Gdx.graphics.getHeight() / 2;  // Добавляем centerY
-        resumeButton = new Rectangle(710, 540, 500, 100);   // CENTER: 960x540
-        mainMenuButton = new Rectangle(710, 400, 500, 100);
-        exitButton = new Rectangle(710, 260, 500, 100);
-        pauseBackground = new Rectangle(centerX - 50, centerY - 250, buttonWidth + 100, 500);
+        float centerY = 1080 / 2;
+        // Позиции кнопок (по вертикали)
+        resumeButton = new Rectangle(centerX, centerY + 100, buttonWidth, buttonHeight);
+        mainMenuButton = new Rectangle(centerX, centerY - 50, buttonWidth, buttonHeight);
+        exitButton = new Rectangle(centerX, centerY - 200, buttonWidth, buttonHeight);
+        pauseBackground = new Rectangle(0, 0, 1920, 1080); // Теперь на весь экран
+
 
 
 
@@ -469,11 +473,13 @@ public class GameManager {
 
         // Draw pause menu if game is paused
         if (isPaused) {
-            // Полупрозрачный фон
+            // Переключаемся на меню-камеру
             batch.setProjectionMatrix(menuCamera.combined);
-            batch.setColor(1, 1, 1, 0.5f);
+            // Отрисовка меню
+            batch.setColor(0, 0, 0, 0.7f);
             batch.draw(pauseTexture, 0, 0, 1920, 1080);
-           /* batch.setColor(Color.WHITE);*/
+            batch.setColor(Color.WHITE);
+
 
             // Фон меню
             batch.draw(pauseBgTexture, pauseBackground.x, pauseBackground.y,
@@ -484,6 +490,7 @@ public class GameManager {
             drawPauseMenuButton(batch, mainMenuButton, pauseRestartTexture);
             drawPauseMenuButton(batch, exitButton, pauseExitTexture);
 
+
             batch.setColor(1, 0, 0, 0.3f);
             batch.draw(pauseContinueTexture, resumeButton.x, resumeButton.y,
                 resumeButton.width, resumeButton.height);
@@ -492,8 +499,10 @@ public class GameManager {
             batch.draw(pauseExitTexture, exitButton.x, exitButton.y,
                 exitButton.width, exitButton.height);
             batch.setColor(Color.WHITE);
+            // Возвращаем игровую камеру
+            batch.setProjectionMatrix(camera.combined);
         }
-        batch.setProjectionMatrix(camera.combined);
+
         batch.end();
     }
 
@@ -617,17 +626,28 @@ public class GameManager {
     }
 
     private void drawPauseMenuButton(SpriteBatch batch, Rectangle rect, Texture texture) {
-        boolean isHovered = isMouseOver(rect);
-        if (isHovered) {
-            batch.setColor(1, 1, 1, 0.8f);
+        // Эффект при наведении
+        if (isMouseOver(rect)) {
+            batch.setColor(1.2f, 1.2f, 1.2f, 1); // Подсветка
+        } else {
+            batch.setColor(Color.WHITE);
         }
+
         batch.draw(texture, rect.x, rect.y, rect.width, rect.height);
         batch.setColor(Color.WHITE);
     }
 
     private boolean isMouseOver(Rectangle rect) {
+        // Получаем координаты касания
         Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        menuViewport.unproject(touchPos); // Используем menuViewport!
+
+        // Преобразуем координаты с учетом viewport'а меню
+        menuViewport.unproject(touchPos);
+
+        // Для отладки (можно удалить после проверки)
+        Gdx.app.log("DEBUG", String.format("Touch: %.1f,%.1f | Button: %s",
+            touchPos.x, touchPos.y, rect));
+
         return rect.contains(touchPos.x, touchPos.y);
     }
 
@@ -636,9 +656,8 @@ public class GameManager {
 
         // Получаем координаты касания
         Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        gameViewport.unproject(touchPos);
+        menuViewport.unproject(touchPos); // Используем viewport меню!
 
-        // Проверяем кнопки с визуализацией зон нажатия
         if (resumeButton.contains(touchPos.x, touchPos.y)) {
             isPaused = false;
             Gdx.app.log("INPUT", "Continue pressed");
