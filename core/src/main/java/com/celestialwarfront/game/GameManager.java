@@ -1,15 +1,14 @@
 package com.celestialwarfront.game;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.graphics.*;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.math.Vector3;
-import com.badlogic.gdx.utils.viewport.Viewport;
-import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 import com.celestialwarfront.game.entities.*;
 import com.celestialwarfront.game.logic.DefaultGameState;
 import com.celestialwarfront.game.logic.Level;
@@ -18,6 +17,7 @@ import com.celestialwarfront.game.patterns.BlockFactory.BlockType;
 import com.celestialwarfront.game.logic.Difficulty;
 import com.celestialwarfront.game.collisions.CollisionSystem;
 import com.celestialwarfront.game.ui.Hud;
+import com.celestialwarfront.game.ui.PauseMenu;
 import com.celestialwarfront.game.ui.StateListener;
 
 import java.util.ArrayList;
@@ -26,29 +26,13 @@ import java.util.Random;
 import javax.swing.JOptionPane;
 
 public class GameManager {
-    private Texture pauseBgTexture;
-    private Texture pauseContinueTexture;
-    private Texture pauseRestartTexture;
-    private Texture pauseExitTexture;
-    // Pause menu
-    private boolean isPaused;
-    private Rectangle pauseBackground;
-    private Rectangle resumeButton;
-    private Rectangle mainMenuButton;
-    private Rectangle exitButton;
-    private Texture pauseTexture; // Для фона меню паузы
-
-    private Viewport menuViewport;
-    private OrthographicCamera menuCamera;
-
-
-
     // Singleton instance
     private static GameManager instance;
 
-    // Facade components
+    // Game components
     private OrthographicCamera camera;
     private Viewport gameViewport;
+    private Viewport menuViewport;
     private Difficulty difficulty;
     private CollisionSystem collisionSystem;
     private PlayerShip playerShip;
@@ -68,6 +52,7 @@ public class GameManager {
     private boolean gameOver;
     private boolean pendingGameOverDialog;
     private boolean wasSpacePressedLastFrame;
+    private PauseMenu pauseMenu;
 
     // Game parameters
     private int nextLineGroupCount;
@@ -85,11 +70,6 @@ public class GameManager {
     private float healthSpawnTimer, nextHealthSpawn;
     private float blockSpawnTimer, nextBlockSpawn;
 
-    // Private constructor for Singleton
-    private GameManager() {
-        initialize();
-    }
-
     // Singleton access method
     public static synchronized GameManager getInstance() {
         if (instance == null) {
@@ -98,52 +78,21 @@ public class GameManager {
         return instance;
     }
 
-    // Facade initialization method
+    // Private constructor for Singleton
+    private GameManager() {
+        initialize();
+    }
+
     private void initialize() {
-        menuCamera = new OrthographicCamera();
-        menuViewport = new FitViewport(1920, 1080, menuCamera);
-        pauseBgTexture = new Texture(Gdx.files.internal("pause_bg.png"));
-        pauseContinueTexture = new Texture(Gdx.files.internal("continue_btn.png"));
-        pauseRestartTexture = new Texture(Gdx.files.internal("restart_btn.png"));
-        pauseExitTexture = new Texture(Gdx.files.internal("btn_exit.png"));
-        // Initialize pause menu
-        isPaused = false;
-        // Размеры кнопок
-        float buttonWidth = 500f;
-        float buttonHeight = 100f;
-        // Центральное позиционирование (для 1920x1080)
-        float centerX = (1920 - buttonWidth) / 2;
-        float centerY = 1080 / 2;
-        // Позиции кнопок (по вертикали)
-        resumeButton = new Rectangle(centerX, centerY + 100, buttonWidth, buttonHeight);
-        mainMenuButton = new Rectangle(centerX, centerY - 50, buttonWidth, buttonHeight);
-        exitButton = new Rectangle(centerX, centerY - 200, buttonWidth, buttonHeight);
-        pauseBackground = new Rectangle(0, 0, 1920, 1080); // Теперь на весь экран
-
-
-
-
-
-// Создаем простую текстуру для фона меню паузы
-        Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-        pixmap.setColor(0, 0, 0, 0.7f);
-        pixmap.fill();
-        pauseTexture = new Texture(pixmap);
-        pixmap.dispose();
-        // Initialize camera and viewport
+        // Initialize viewports
         camera = new OrthographicCamera();
         gameViewport = new FitViewport(1920, 1440, camera);
-        gameViewport.apply();
+        menuViewport = new FitViewport(1920, 1080, new OrthographicCamera());
 
         // Initialize game state and HUD
         gameState = new DefaultGameState();
         hud = new Hud();
         gameState.addListener(hud);
-
-        hud.onScoreChanged(gameState.getScore());
-        hud.onHPChanged(gameState.getHP());
-        hud.onLevelChanged(gameState.getLevel());
-        hud.onTimeChanged(gameState.getTimeString());
 
         // Setup game state listener
         gameState.addListener(new StateListener() {
@@ -159,8 +108,6 @@ public class GameManager {
             public void onLevelChanged(int lvl) {}
             public void onTimeChanged(String t) {}
             public void onAmmoChanged(int ammo) {}
-
-
         });
 
         // Initialize collections
@@ -172,9 +119,12 @@ public class GameManager {
 
         // Initialize random
         random = new Random();
+
+        // Initialize pause menu
+        pauseMenu = new PauseMenu();
+        pauseMenu.setViewport(menuViewport);
     }
 
-    // Facade methods for game control
     public void startNewGame() {
         // Show difficulty selection dialog
         String[] options = {"Легкий", "Средний", "Сложный"};
@@ -248,25 +198,20 @@ public class GameManager {
     }
 
     public void update(float delta) {
-        // Пауза по ESC
+        // Toggle pause on ESC
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            isPaused = !isPaused; // Переключаем паузу
-            Gdx.app.log("GameManager", "Paused: " + isPaused);
+            pauseMenu.toggleVisibility();
         }
 
-        if (isPaused) {
-            handlePauseMenuInput(); // Обработка кликов в меню паузы
-            return; // Не обновлять игру на паузе
+        if (pauseMenu.isVisible()) {
+            pauseMenu.handleInput(this);
+            return;
         }
+
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
         gameState.updateTimer(delta);
-
-        if (isPaused) {
-            handlePauseMenuInput();
-            return;
-        }
 
         if (!gameOver) {
             updateGameState(delta);
@@ -468,47 +413,18 @@ public class GameManager {
             hp.render(batch);
         }
 
-        // Draw HUD (после всех игровых объектов)
+        // Draw HUD
         hud.draw();
 
-        // Draw pause menu if game is paused
-        if (isPaused) {
-            // Переключаемся на меню-камеру
-            batch.setProjectionMatrix(menuCamera.combined);
-            // Отрисовка меню
-            batch.setColor(0, 0, 0, 0.7f);
-            batch.draw(pauseTexture, 0, 0, 1920, 1080);
-            batch.setColor(Color.WHITE);
-
-
-            // Фон меню
-            batch.draw(pauseBgTexture, pauseBackground.x, pauseBackground.y,
-                pauseBackground.width, pauseBackground.height);
-
-            // Отрисовка кнопок
-            drawPauseMenuButton(batch, resumeButton, pauseContinueTexture);
-            drawPauseMenuButton(batch, mainMenuButton, pauseRestartTexture);
-            drawPauseMenuButton(batch, exitButton, pauseExitTexture);
-
-
-            batch.setColor(1, 0, 0, 0.3f);
-            batch.draw(pauseContinueTexture, resumeButton.x, resumeButton.y,
-                resumeButton.width, resumeButton.height);
-            batch.draw(pauseRestartTexture, mainMenuButton.x, mainMenuButton.y,
-                mainMenuButton.width, mainMenuButton.height);
-            batch.draw(pauseExitTexture, exitButton.x, exitButton.y,
-                exitButton.width, exitButton.height);
-            batch.setColor(Color.WHITE);
-            // Возвращаем игровую камеру
-            batch.setProjectionMatrix(camera.combined);
-        }
+        // Draw pause menu if visible
+        pauseMenu.render(batch);
 
         batch.end();
     }
 
     public void resize(int width, int height) {
-        gameViewport.update(width, height, true);  // Для игры (1920x1440)
-        menuViewport.update(width, height, true); // Для меню (1920x1080)
+        gameViewport.update(width, height, true);
+        menuViewport.update(width, height, true);
         hud.resize(width, height);
     }
 
@@ -522,10 +438,7 @@ public class GameManager {
         meteorTex.dispose();
         ammoBoxTex.dispose();
         healthPackTex.dispose();
-        pauseBgTexture.dispose();
-        pauseContinueTexture.dispose();
-        pauseRestartTexture.dispose();
-        pauseExitTexture.dispose();
+        pauseMenu.dispose();
     }
 
     private void showGameOverDialog() {
@@ -615,7 +528,6 @@ public class GameManager {
 
     private void spawnBlockGroup(int lines) {
         float screenH = Gdx.graphics.getHeight();
-
         float blockH = breakableTex.getHeight();
 
         int count = Math.min(lines, 2);
@@ -625,64 +537,11 @@ public class GameManager {
         }
     }
 
-    private void drawPauseMenuButton(SpriteBatch batch, Rectangle rect, Texture texture) {
-        // Эффект при наведении
-        if (isMouseOver(rect)) {
-            batch.setColor(1.2f, 1.2f, 1.2f, 1); // Подсветка
-        } else {
-            batch.setColor(Color.WHITE);
-        }
-
-        batch.draw(texture, rect.x, rect.y, rect.width, rect.height);
-        batch.setColor(Color.WHITE);
-    }
-
-    private boolean isMouseOver(Rectangle rect) {
-        // Получаем координаты касания
-        Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-
-        // Преобразуем координаты с учетом viewport'а меню
-        menuViewport.unproject(touchPos);
-
-        // Для отладки (можно удалить после проверки)
-        Gdx.app.log("DEBUG", String.format("Touch: %.1f,%.1f | Button: %s",
-            touchPos.x, touchPos.y, rect));
-
-        return rect.contains(touchPos.x, touchPos.y);
-    }
-
-    private void handlePauseMenuInput() {
-        if (!isPaused || !Gdx.input.justTouched()) return;
-
-        // Получаем координаты касания
-        Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        menuViewport.unproject(touchPos); // Используем viewport меню!
-
-        if (resumeButton.contains(touchPos.x, touchPos.y)) {
-            isPaused = false;
-            Gdx.app.log("INPUT", "Continue pressed");
-        }
-        else if (mainMenuButton.contains(touchPos.x, touchPos.y)) {
-            restartGame();
-            isPaused = false;
-            Gdx.app.log("INPUT", "Restart pressed");
-        }
-        else if (exitButton.contains(touchPos.x, touchPos.y)) {
-            Gdx.app.log("INPUT", "Exit pressed");
-            Gdx.app.exit();
-        }
-    }
-
-
-
-
     public OrthographicCamera getCamera() {
         return camera;
     }
+
     public Hud getHud() {
         return hud;
-    }
-    public boolean isPaused() {
-        return isPaused;
     }
 }
