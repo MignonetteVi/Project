@@ -97,21 +97,18 @@ public class GameManager {
     // Facade initialization method
     private void initialize() {
         pauseBgTexture = new Texture(Gdx.files.internal("pause_bg.png"));
-        pauseContinueTexture = new Texture(Gdx.files.internal("continue.png"));
+        pauseContinueTexture = new Texture(Gdx.files.internal("continue_btn.png"));
         pauseRestartTexture = new Texture(Gdx.files.internal("restart_btn.png"));
         pauseExitTexture = new Texture(Gdx.files.internal("btn_exit.png"));
         // Initialize pause menu
         isPaused = false;
         float buttonWidth = 400f;
         float buttonHeight = 150f;
-        float centerX = 1920/2 - buttonWidth/2;
+        float centerX = (1920 - buttonWidth) / 2;
         resumeButton = new Rectangle(centerX, 450, buttonWidth, buttonHeight);
         mainMenuButton = new Rectangle(centerX, 300, buttonWidth, buttonHeight);
         exitButton = new Rectangle(centerX, 150, buttonWidth, buttonHeight);
-        /*float menuWidth = 500;
-        float menuHeight = 400;
-        float centerX = (1920 - menuWidth) / 2;
-        float centerY = (1080 - menuHeight) / 2;*/
+        pauseBackground = new Rectangle(centerX - 50, 100, buttonWidth + 100, 500);
 
 
 
@@ -250,8 +247,8 @@ public class GameManager {
 
         gameState.updateTimer(delta);
 
-        if (pendingGameOverDialog) {
-            showGameOverDialog();
+        if (isPaused) {
+            handlePauseMenuInput();
             return;
         }
 
@@ -428,14 +425,7 @@ public class GameManager {
         batch.begin();
 
         // Draw player
-        batch.draw(
-            playerTexture,
-            playerShip.x, playerShip.y,
-            shipW, shipH
-        );
-
-        // Draw HUD
-        hud.draw();
+        batch.draw(playerTexture, playerShip.x, playerShip.y, shipW, shipH);
 
         // Draw bullets
         for (Bullet bullet : bullets) {
@@ -461,6 +451,9 @@ public class GameManager {
         for (HealthPack hp : healthPacks) {
             hp.render(batch);
         }
+
+        // Draw HUD (после всех игровых объектов)
+        hud.draw();
 
         // Draw pause menu if game is paused
         if (isPaused) {
@@ -627,7 +620,8 @@ public class GameManager {
             else if (mainMenuButton.contains(touchPos.x, touchPos.y)) {
                 isPaused = false;
                 // Здесь должен быть переход в главное меню
-                // Например: game.setScreen(new MainMenuScreen(game));
+                // Вам нужно получить доступ к объекту Game, например, сохранив его в GameManager
+                // game.setScreen(new MainMenuScreen(game));
             }
             else if (exitButton.contains(touchPos.x, touchPos.y)) {
                 Gdx.app.exit();
