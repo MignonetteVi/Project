@@ -3,6 +3,7 @@ package com.celestialwarfront.game.ui;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -49,7 +50,7 @@ public class Hud implements StateListener {
         return font;
     }
 
-    public void draw() {
+    public void draw(SpriteBatch batch) {
         stage.act(Gdx.graphics.getDeltaTime());
         stage.draw();
     }

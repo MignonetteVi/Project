@@ -16,6 +16,7 @@ import com.celestialwarfront.game.patterns.*;
 import com.celestialwarfront.game.patterns.BlockFactory.BlockType;
 import com.celestialwarfront.game.logic.Difficulty;
 import com.celestialwarfront.game.collisions.CollisionSystem;
+import com.celestialwarfront.game.ui.GameOverMenu;
 import com.celestialwarfront.game.ui.Hud;
 import com.celestialwarfront.game.ui.PauseMenu;
 import com.celestialwarfront.game.ui.StateListener;
@@ -26,7 +27,6 @@ import java.util.Random;
 import javax.swing.JOptionPane;
 
 public class GameManager {
-    // Singleton instance
     private static GameManager instance;
 
     // Game components
@@ -53,6 +53,7 @@ public class GameManager {
     private boolean pendingGameOverDialog;
     private boolean wasSpacePressedLastFrame;
     private PauseMenu pauseMenu;
+    private GameOverMenu gameOverMenu;
 
     // Game parameters
     private int nextLineGroupCount;
@@ -70,7 +71,6 @@ public class GameManager {
     private float healthSpawnTimer, nextHealthSpawn;
     private float blockSpawnTimer, nextBlockSpawn;
 
-    // Singleton access method
     public static synchronized GameManager getInstance() {
         if (instance == null) {
             instance = new GameManager();
@@ -78,23 +78,31 @@ public class GameManager {
         return instance;
     }
 
-    // Private constructor for Singleton
     private GameManager() {
-        initialize();
-    }
-
-    private void initialize() {
-        // Initialize viewports
+        // Initialize graphics first
         camera = new OrthographicCamera();
         gameViewport = new FitViewport(1920, 1440, camera);
         menuViewport = new FitViewport(1920, 1080, new OrthographicCamera());
 
-        // Initialize game state and HUD
+        // Initialize menus
+        pauseMenu = new PauseMenu();
+        pauseMenu.setViewport(menuViewport);
+        gameOverMenu = new GameOverMenu();
+        gameOverMenu.setViewport(menuViewport);
+
+        // Initialize game systems
         gameState = new DefaultGameState();
         hud = new Hud();
         gameState.addListener(hud);
 
-        // Setup game state listener
+        bullets = new ArrayList<>();
+        blocks = new ArrayList<>();
+        meteors = new ArrayList<>();
+        ammoBoxes = new ArrayList<>();
+        healthPacks = new ArrayList<>();
+
+        random = new Random();
+
         gameState.addListener(new StateListener() {
             @Override
             public void onHPChanged(int newHP) {
@@ -103,30 +111,14 @@ public class GameManager {
                     pendingGameOverDialog = true;
                 }
             }
-
             public void onScoreChanged(int s) {}
             public void onLevelChanged(int lvl) {}
             public void onTimeChanged(String t) {}
             public void onAmmoChanged(int ammo) {}
         });
-
-        // Initialize collections
-        bullets = new ArrayList<>();
-        blocks = new ArrayList<>();
-        meteors = new ArrayList<>();
-        ammoBoxes = new ArrayList<>();
-        healthPacks = new ArrayList<>();
-
-        // Initialize random
-        random = new Random();
-
-        // Initialize pause menu
-        pauseMenu = new PauseMenu();
-        pauseMenu.setViewport(menuViewport);
     }
 
     public void startNewGame() {
-        // Show difficulty selection dialog
         String[] options = {"Легкий", "Средний", "Сложный"};
         int sel = JOptionPane.showOptionDialog(
             null,
@@ -140,7 +132,6 @@ public class GameManager {
         );
         difficulty = Difficulty.fromIndex(sel);
 
-        // Setup level parameters
         ILevelProvider provider = new JsonLevelProvider();
         Level level = provider.createLevel(difficulty);
 
@@ -153,11 +144,9 @@ public class GameManager {
         baseBlockScrollSpeed = blockScrollSpeed;
         linesSpawned = 0;
 
-        // Initialize player and factories
         playerShip = new PlayerShip(100, 200);
         bulletFactory = new BulletFactory();
 
-        // Load textures
         playerTexture = new Texture(Gdx.files.internal("player.png"));
         bulletTexture = new Texture(Gdx.files.internal("bullet.png"));
         batch = new SpriteBatch();
@@ -169,19 +158,15 @@ public class GameManager {
         healthPackTex = new Texture(Gdx.files.internal("health_pack.png"));
         ammoBoxTex = new Texture(Gdx.files.internal("ammo_box.png"));
 
-        // Initialize collision system
         collisionSystem = new CollisionSystem(gameState);
 
-        // Calculate columns
         int screenW = Gdx.graphics.getWidth();
         float blockW = breakableTex.getWidth();
         cols = (int)Math.ceil(screenW / blockW);
 
-        // Set initial gap
         gapIndex = cols / 2;
         gapLinesRemaining = 5;
 
-        // Initialize timers
         meteorSpawnTimer = 0f;
         nextMeteorSpawn = 5f;
         blockSpawnTimer = 0f;
@@ -193,12 +178,10 @@ public class GameManager {
         gameOver = false;
         pendingGameOverDialog = false;
 
-        // Spawn first block group
         spawnBlockGroup(nextLineGroupCount);
     }
 
     public void update(float delta) {
-        // Toggle pause on ESC
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             pauseMenu.toggleVisibility();
         }
@@ -208,28 +191,30 @@ public class GameManager {
             return;
         }
 
+        if (gameOver) {
+            if (pendingGameOverDialog) {
+                gameOverMenu.setVisible(true);
+                pendingGameOverDialog = false;
+            }
+            gameOverMenu.handleInput(this);
+            return;
+        }
+
         camera.update();
         batch.setProjectionMatrix(camera.combined);
-
         gameState.updateTimer(delta);
-
-        if (!gameOver) {
-            updateGameState(delta);
-        }
+        updateGameState(delta);
     }
 
     private void updateGameState(float delta) {
-        // Player movement
         boolean left = Gdx.input.isKeyPressed(Input.Keys.A);
         boolean right = Gdx.input.isKeyPressed(Input.Keys.D);
         playerShip.move(delta, left, right);
 
-        // Developer reset (R key)
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
             gameState.resetLevel();
         }
 
-        // Ship collision rectangle
         float blockW = breakableTex.getWidth();
         float origW = playerTexture.getWidth();
         float origH = playerTexture.getHeight();
@@ -244,7 +229,6 @@ public class GameManager {
             shipH - inset*2
         );
 
-        // Shooting
         boolean isSpacePressed = Gdx.input.isKeyPressed(Input.Keys.SPACE);
         if (isSpacePressed && !wasSpacePressedLastFrame) {
             if (gameState.getAmmo() > 0) {
@@ -256,12 +240,10 @@ public class GameManager {
         }
         wasSpacePressedLastFrame = isSpacePressed;
 
-        // Update bullets
         for (Bullet bullet : bullets) {
             bullet.move(delta);
         }
 
-        // Update blocks
         for (Block b : blocks) {
             b.move(0, -blockScrollSpeed * delta);
             if (b instanceof FallingBlock) {
@@ -269,7 +251,6 @@ public class GameManager {
             }
         }
 
-        // Spawn new blocks
         blockSpawnTimer += delta;
         if (blockSpawnTimer >= nextBlockSpawn) {
             spawnBlockGroup(nextLineGroupCount);
@@ -280,7 +261,6 @@ public class GameManager {
             nextBlockSpawn = minSpawnInterval + random.nextFloat() * (maxSpawnInterval - minSpawnInterval);
         }
 
-        // Spawn meteors
         meteorSpawnTimer += delta;
         if (meteorSpawnTimer >= nextMeteorSpawn) {
             float spawnX = random.nextFloat() * (Gdx.graphics.getWidth() - meteorTex.getWidth() / 2f);
@@ -290,12 +270,10 @@ public class GameManager {
             nextMeteorSpawn = 3f + random.nextFloat() * 5f;
         }
 
-        // Update meteors
         for (Meteor m : meteors) {
             m.update(delta);
         }
 
-        // Spawn and update ammo boxes
         ammoSpawnTimer += delta;
         if (ammoSpawnTimer >= nextAmmoSpawn) {
             float x = random.nextFloat() * (Gdx.graphics.getWidth() - ammoBoxTex.getWidth());
@@ -305,7 +283,6 @@ public class GameManager {
         }
         for (AmmoBox box : ammoBoxes) box.update(delta);
 
-        // Spawn and update health packs
         healthSpawnTimer += delta;
         if (healthSpawnTimer >= nextHealthSpawn) {
             float x = random.nextFloat() * (Gdx.graphics.getWidth() - healthPackTex.getWidth());
@@ -317,10 +294,8 @@ public class GameManager {
             hp.update(delta);
         }
 
-        // Handle collisions
         handleCollisions(shipRect);
 
-        // Clean up destroyed objects
         collisionSystem.purgeTaggedBullets(bullets);
         blocks.removeIf(Block::isDestroyed);
         meteors.removeIf(Meteor::isDestroyed);
@@ -328,7 +303,6 @@ public class GameManager {
     }
 
     private void handleCollisions(Rectangle shipRect) {
-        // Bullet collisions
         for (Bullet b : bullets) {
             Rectangle r = new Rectangle(b.x, b.y, bulletTexture.getWidth(), bulletTexture.getHeight());
             for (Block block : blocks) {
@@ -343,7 +317,6 @@ public class GameManager {
             }
         }
 
-        // Ship collisions
         for (Block block : blocks) {
             if (shipRect.overlaps(block.getBounds())) {
                 collisionSystem.onCollision(playerShip, block, 0);
@@ -355,7 +328,6 @@ public class GameManager {
             }
         }
 
-        // Ammo box collisions
         for (AmmoBox box : ammoBoxes) {
             if (!box.isPicked() && shipRect.overlaps(box.getBounds())) {
                 box.pick();
@@ -363,7 +335,6 @@ public class GameManager {
             }
         }
 
-        // Health pack collisions
         for (HealthPack hp : healthPacks) {
             if (!hp.isPicked() && shipRect.overlaps(hp.getBounds())) {
                 hp.pick();
@@ -373,51 +344,73 @@ public class GameManager {
     }
 
     public void render() {
+        // Очистка экрана
+        Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        // Calculate ship dimensions
-        float blockW = breakableTex.getWidth();
-        float origW = playerTexture.getWidth();
-        float origH = playerTexture.getHeight();
-        float scale = blockW / origW;
-        float shipW = origW * scale;
-        float shipH = origH * scale;
 
         batch.begin();
 
-        // Draw player
-        batch.draw(playerTexture, playerShip.x, playerShip.y, shipW, shipH);
+        // Отрисовка игрового мира (только если игра не завершена)
+        if (!gameOver) {
+            // Рассчет размеров корабля
+            float blockW = breakableTex.getWidth();
+            float origW = playerTexture.getWidth();
+            float origH = playerTexture.getHeight();
+            float scale = blockW / origW;
+            float shipW = origW * scale;
+            float shipH = origH * scale;
 
-        // Draw bullets
-        for (Bullet bullet : bullets) {
-            batch.draw(bulletTexture, bullet.x, bullet.y);
+            // Отрисовка игровых объектов
+            batch.draw(playerTexture, playerShip.x, playerShip.y, shipW, shipH);
+
+            // Отрисовка пуль
+            for (Bullet bullet : bullets) {
+                batch.draw(bulletTexture, bullet.x, bullet.y);
+            }
+
+            // Отрисовка блоков
+            for (Block b : blocks) {
+                b.render(batch);
+            }
+
+            // Отрисовка метеоров
+            for (Meteor m : meteors) {
+                m.render(batch);
+            }
+
+            // Отрисовка ящиков с боеприпасами
+            for (AmmoBox box : ammoBoxes) {
+                box.render(batch);
+            }
+
+            // Отрисовка аптечек
+            for (HealthPack hp : healthPacks) {
+                hp.render(batch);
+            }
         }
 
-        // Draw blocks
-        for (Block b : blocks) {
-            b.render(batch);
+        // Отрисовка HUD (всегда поверх игрового мира)
+        hud.draw(batch);
+
+        // Отрисовка меню паузы (если активно)
+        if (pauseMenu.isVisible()) {
+            pauseMenu.render(batch);
         }
 
-        // Draw meteors
-        for (Meteor m : meteors) {
-            m.render(batch);
+        // Отрисовка меню Game Over (если активно)
+        if (gameOverMenu.isVisible()) {
+            // Важно: переключаем проекционную матрицу для меню
+            batch.end();
+            batch.setProjectionMatrix(menuViewport.getCamera().combined);
+            batch.begin();
+
+            gameOverMenu.render(batch);
+
+            // Возвращаем проекцию для игрового мира
+            batch.end();
+            batch.setProjectionMatrix(camera.combined);
+            batch.begin();
         }
-
-        // Draw ammo boxes
-        for (AmmoBox box : ammoBoxes) {
-            box.render(batch);
-        }
-
-        // Draw health packs
-        for (HealthPack hp : healthPacks) {
-            hp.render(batch);
-        }
-
-        // Draw HUD
-        hud.draw();
-
-        // Draw pause menu if visible
-        pauseMenu.render(batch);
 
         batch.end();
     }
@@ -439,24 +432,10 @@ public class GameManager {
         ammoBoxTex.dispose();
         healthPackTex.dispose();
         pauseMenu.dispose();
-    }
-
-    private void showGameOverDialog() {
-        int res = JOptionPane.showConfirmDialog(
-            null,
-            "Game Over!\nPlay again?",
-            "Game Over",
-            JOptionPane.YES_NO_OPTION
-        );
-        if (res == JOptionPane.YES_OPTION) {
-            restartGame();
-        } else {
-            Gdx.app.exit();
-        }
+        gameOverMenu.dispose();
     }
 
     public void restartGame() {
-        // Reset world
         playerShip.setPosition(0);
         bullets.clear();
         blocks.clear();
@@ -472,13 +451,11 @@ public class GameManager {
         meteorSpawnTimer = 0f;
         nextMeteorSpawn = 5f;
 
-        // Reset game state
         gameState.resetSession();
-
-        // Reset flags
         pendingGameOverDialog = false;
         wasSpacePressedLastFrame = false;
         gameOver = false;
+        gameOverMenu.setVisible(false);
     }
 
     private void spawnBlockLineAt(float y) {
