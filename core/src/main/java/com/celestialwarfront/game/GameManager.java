@@ -241,7 +241,10 @@ public class GameManager {
             isPaused = !isPaused;
         }
 
-        if (isPaused) return; // Не обновляем игру на паузе
+        if (isPaused) {
+            handlePauseMenuInput(); // Обработка кликов в меню паузы
+            return; // Не обновлять игру на паузе
+        }
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
@@ -608,26 +611,32 @@ public class GameManager {
     }
 
     private void handlePauseMenuInput() {
-        if (!isPaused) return;
+        if (!isPaused) return;  // Если паузы нет, не обрабатываем ввод
 
         if (Gdx.input.justTouched()) {
             Vector3 touchPos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
             camera.unproject(touchPos);
 
+            // Проверяем, была ли нажата кнопка "Продолжить"
             if (resumeButton.contains(touchPos.x, touchPos.y)) {
-                isPaused = false;
+                isPaused = false; // Снимаем паузу
+                Gdx.app.log("PauseMenu", "Continue button pressed");
             }
+            // Проверяем, была ли нажата кнопка "Рестарт"
             else if (mainMenuButton.contains(touchPos.x, touchPos.y)) {
-                isPaused = false;
-                // Здесь должен быть переход в главное меню
-                // Вам нужно получить доступ к объекту Game, например, сохранив его в GameManager
-                // game.setScreen(new MainMenuScreen(game));
+                isPaused = false; // Снимаем паузу
+                restartGame(); // Рестарт игры
+                Gdx.app.log("PauseMenu", "Restart button pressed");
             }
+            // Проверяем, была ли нажата кнопка "Выйти"
             else if (exitButton.contains(touchPos.x, touchPos.y)) {
-                Gdx.app.exit();
+                Gdx.app.exit(); // Закрыть игру
+                Gdx.app.log("PauseMenu", "Exit button pressed");
             }
         }
     }
+
+
     public OrthographicCamera getCamera() {
         return camera;
     }
