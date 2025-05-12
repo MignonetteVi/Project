@@ -465,7 +465,7 @@ public class GameManager {
 
         int unbreakCount = 0;
 
-        for (int i = 0; i < cols; i++) {
+        for (int i = 0; i < cols; i++   ) {
             if (gapLinesRemaining > 0 && i == gapIndex) continue;
 
             float x = i * blockW;
