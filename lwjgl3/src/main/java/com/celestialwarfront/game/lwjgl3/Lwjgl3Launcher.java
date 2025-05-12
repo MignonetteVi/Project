@@ -2,7 +2,7 @@ package com.celestialwarfront.game.lwjgl3;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.celestialwarfront.game.MainGame;
+import com.celestialwarfront.game.ui_ux.MainGame;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {

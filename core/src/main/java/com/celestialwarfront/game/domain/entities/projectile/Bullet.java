@@ -1,0 +1,20 @@
+package com.celestialwarfront.game.domain.entities.projectile;
+
+import com.celestialwarfront.game.contract.IMovableBullet;
+
+public class Bullet implements IMovableBullet {
+    public float x;
+    public float y;
+    public float speed;
+
+    public Bullet(float x, float y, float speed) {
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+    }
+
+    @Override
+    public void move(float deltaTime) {
+        y+=speed*deltaTime;
+    }
+}

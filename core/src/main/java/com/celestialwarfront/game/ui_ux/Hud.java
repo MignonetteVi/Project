@@ -1,0 +1,110 @@
+package com.celestialwarfront.game.ui_ux;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.*;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.celestialwarfront.game.contract.IStateListener;
+
+public class Hud implements IStateListener {
+    private final Stage stage;
+    private final Label ammoLabel;
+    private final Label scoreLabel;
+    private final Label hpLabel;
+    private final Label levelLabel;
+    private final Label timerLabel;
+    private final BitmapFont font;
+
+    public Hud() {
+        stage = new Stage(new ScreenViewport());
+
+        font = new BitmapFont(); // Сохраняем шрифт в поле класса
+        Label.LabelStyle ls = new Label.LabelStyle(font, Color.WHITE);
+
+        scoreLabel  = new Label("Score: 0", ls);
+        hpLabel = new Label("HP: 100", ls);
+        ammoLabel  = new Label("Ammo: 15", ls);
+        levelLabel  = new Label("Level: 0", ls);
+        timerLabel  = new Label("Time: 00:00", ls);
+
+        Table table = new Table();
+        table.top().left();
+        table.setFillParent(true);
+
+        table.add(ammoLabel).pad(8);
+        table.row();
+        table.add(scoreLabel).pad(8);
+        table.row();
+        table.add(hpLabel).pad(8);
+        table.row();
+        table.add(levelLabel).padLeft(4);
+        table.row();
+        table.add(timerLabel).pad(8);
+
+        stage.addActor(table);
+    }
+    public BitmapFont getFont() {
+        return font;
+    }
+
+    public void draw(SpriteBatch batch) {
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();
+    }
+
+    @Override
+    public void onScoreChanged(int newScore) {
+        scoreLabel.setText("Score: " + newScore);
+    }
+
+    @Override
+    public void onHPChanged(int newHP) {
+        hpLabel.setText("HP: " + newHP);
+        hpLabel.addAction(Actions.sequence(
+            Actions.color(Color.RED, 0f),
+            Actions.color(Color.WHITE, 0.2f),
+            Actions.color(Color.RED, 0f),
+            Actions.color(Color.WHITE, 0.2f)
+        ));
+    }
+
+    @Override
+    public void onLevelChanged(int newLevel) {
+        levelLabel.setText("Level: " + newLevel);
+        levelLabel.addAction(Actions.sequence(
+            Actions.scaleTo(1.5f, 1.5f, 0.1f),
+            Actions.scaleTo(1f, 1f, 0.1f)
+        ));
+    }
+
+    @Override
+    public void onAmmoChanged(int ammo) {
+        ammoLabel.setText("Ammo: " + ammo);
+        // можно добавить мерцание или другие эффекты
+    }
+
+    public void flashAmmo() {
+        ammoLabel.addAction(Actions.sequence(
+                Actions.color(Color.RED, 0f),
+                Actions.color(Color.WHITE, 0.2f),
+                Actions.color(Color.RED, 0f),
+                Actions.color(Color.WHITE, 0.2f)
+        ));
+    }
+
+    @Override
+    public void onTimeChanged(String timeString) {
+        timerLabel.setText("Time: " + timeString);
+    }
+
+    public void resize(int width, int height) {
+        stage.getViewport().update(width, height, true);
+    }
+
+
+}
+
