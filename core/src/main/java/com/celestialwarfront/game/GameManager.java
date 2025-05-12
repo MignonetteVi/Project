@@ -81,7 +81,7 @@ public class GameManager {
     private GameManager() {
         // Initialize graphics first
         camera = new OrthographicCamera();
-        gameViewport = new FitViewport(1920, 1440, camera);
+        gameViewport = new FitViewport(1920, 1080, camera);
         menuViewport = new FitViewport(1920, 1080, new OrthographicCamera());
 
         // Initialize menus
