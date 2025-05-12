@@ -78,6 +78,11 @@ public class GameManager {
     private float ammoSpawnTimer, nextAmmoSpawn;
     private float healthSpawnTimer, nextHealthSpawn;
     private float blockSpawnTimer, nextBlockSpawn;
+    private float meteorBaseSpeed        = 80f;
+    private float meteorSpeedRange       = 120f;
+    private float pickupBaseSpeed        = 100f;
+    private float speedIncrementPerLevel = 10f;
+
 
     public static synchronized GameManager getInstance() {
         if (instance == null) {
@@ -275,7 +280,12 @@ public class GameManager {
         meteorSpawnTimer += delta;
         if (meteorSpawnTimer >= nextMeteorSpawn) {
             float spawnX = random.nextFloat() * Gdx.graphics.getWidth();
-            float speed  = 80f + random.nextFloat() * 120f;
+            int lvl = gameState.getLevel();
+            float dm = getDifficultyMultiplier();
+            float speed = (meteorBaseSpeed
+                + random.nextFloat() * meteorSpeedRange
+                + lvl * speedIncrementPerLevel)
+                * dm;
             meteors.add(new Meteor(spawnX, Gdx.graphics.getHeight(), speed));
             meteorSpawnTimer = 0f;
             nextMeteorSpawn = 3f + random.nextFloat() * 5f;
@@ -288,7 +298,10 @@ public class GameManager {
         ammoSpawnTimer += delta;
         if (ammoSpawnTimer >= nextAmmoSpawn) {
             float x = random.nextFloat() * (Gdx.graphics.getWidth() - ammoBoxTex.getWidth());
-            ammoBoxes.add(new AmmoBox(x, Gdx.graphics.getHeight(), ammoBoxTex, 100f));
+            int lvl = gameState.getLevel();
+            float dm = getDifficultyMultiplier();
+            float ammoSpeed = (pickupBaseSpeed + lvl * speedIncrementPerLevel) * dm;
+            ammoBoxes.add(new AmmoBox(x, Gdx.graphics.getHeight(), ammoBoxTex, ammoSpeed));
             ammoSpawnTimer = 0f;
             nextAmmoSpawn = 15f + random.nextFloat()*10f;
         }
@@ -297,7 +310,10 @@ public class GameManager {
         healthSpawnTimer += delta;
         if (healthSpawnTimer >= nextHealthSpawn) {
             float x = random.nextFloat() * (Gdx.graphics.getWidth() - healthPackTex.getWidth());
-            healthPacks.add(new HealthPack(x, Gdx.graphics.getHeight(), healthPackTex, 100f));
+            int lvl = gameState.getLevel();
+            float dm = getDifficultyMultiplier();
+            float hpSpeed   = (pickupBaseSpeed + lvl * speedIncrementPerLevel) * dm;
+            healthPacks.add(new HealthPack(x, Gdx.graphics.getHeight(), healthPackTex, hpSpeed));
             healthSpawnTimer = 0f;
             nextHealthSpawn = 20f + random.nextFloat() * 20f;
         }
@@ -528,6 +544,15 @@ public class GameManager {
             spawnBlockLineAt(screenH + i * blockH);
         }
     }
+
+    private float getDifficultyMultiplier() {
+        switch (difficulty) {
+            case MEDIUM: return 1.2f;
+            case HARD:   return 1.5f;
+            default:     return 1f;    // для EASY
+        }
+    }
+
 
     public OrthographicCamera getCamera() {
         return camera;
