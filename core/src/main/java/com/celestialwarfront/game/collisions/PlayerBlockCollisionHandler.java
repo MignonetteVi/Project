@@ -17,6 +17,7 @@ public class PlayerBlockCollisionHandler extends AbstractCollisionHandler {
             && event.target instanceof Block) {
             Block block = (Block)event.target;
             gameState.changeHP(-50);
+            block.onHit();
             block.markDestroyed();
         } else {
             passToNext(event);

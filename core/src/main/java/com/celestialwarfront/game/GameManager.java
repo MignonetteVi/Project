@@ -1,12 +1,13 @@
 package com.celestialwarfront.game;
 
+import com.celestialwarfront.game.particles.Particle;
+import com.celestialwarfront.game.particles.StarField;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 import com.celestialwarfront.game.entities.*;
@@ -20,7 +21,6 @@ import com.celestialwarfront.game.ui.GameOverMenu;
 import com.celestialwarfront.game.ui.Hud;
 import com.celestialwarfront.game.ui.PauseMenu;
 import com.celestialwarfront.game.ui.StateListener;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -44,8 +44,9 @@ public class GameManager {
     private List<Block> blocks;
     private List<Meteor> meteors;
     private List<AmmoBox> ammoBoxes;
+    private Particle starField;
     private List<HealthPack> healthPacks;
-    private Texture breakableTex, unbreakableTex, fallingTex, meteorTex, ammoBoxTex, healthPackTex;
+    private Texture breakableTex, unbreakableTex, fallingTex, ammoBoxTex, healthPackTex;
     private Random random;
     private DefaultGameState gameState;
     private Hud hud;
@@ -154,7 +155,6 @@ public class GameManager {
         breakableTex = new Texture(Gdx.files.internal("block_breakable.png"));
         unbreakableTex = new Texture(Gdx.files.internal("block_unbreakable.png"));
         fallingTex = new Texture(Gdx.files.internal("block_falling.png"));
-        meteorTex = new Texture(Gdx.files.internal("meteor.png"));
         healthPackTex = new Texture(Gdx.files.internal("health_pack.png"));
         ammoBoxTex = new Texture(Gdx.files.internal("ammo_box.png"));
 
@@ -177,7 +177,7 @@ public class GameManager {
         nextHealthSpawn = 20f + random.nextFloat() * 20f;
         gameOver = false;
         pendingGameOverDialog = false;
-
+        starField = new StarField(100, blockScrollSpeed);
         spawnBlockGroup(nextLineGroupCount);
     }
 
@@ -207,6 +207,10 @@ public class GameManager {
     }
 
     private void updateGameState(float delta) {
+        if (starField != null) {
+            ((StarField) starField).setSpeed(blockScrollSpeed);
+            starField.update(delta);
+        }
         boolean left = Gdx.input.isKeyPressed(Input.Keys.A);
         boolean right = Gdx.input.isKeyPressed(Input.Keys.D);
         playerShip.move(delta, left, right);
@@ -263,9 +267,9 @@ public class GameManager {
 
         meteorSpawnTimer += delta;
         if (meteorSpawnTimer >= nextMeteorSpawn) {
-            float spawnX = random.nextFloat() * (Gdx.graphics.getWidth() - meteorTex.getWidth() / 2f);
-            float speed = 80f + random.nextFloat() * 120f;
-            meteors.add(new Meteor(spawnX, Gdx.graphics.getHeight(), meteorTex, speed));
+            float spawnX = random.nextFloat() * Gdx.graphics.getWidth();
+            float speed  = 80f + random.nextFloat() * 120f;
+            meteors.add(new Meteor(spawnX, Gdx.graphics.getHeight(), speed));
             meteorSpawnTimer = 0f;
             nextMeteorSpawn = 3f + random.nextFloat() * 5f;
         }
@@ -350,6 +354,10 @@ public class GameManager {
 
         batch.begin();
 
+        if (starField != null) {
+            starField.render(batch);
+        }
+
         // Отрисовка игрового мира (только если игра не завершена)
         if (!gameOver) {
             // Рассчет размеров корабля
@@ -428,7 +436,7 @@ public class GameManager {
         breakableTex.dispose();
         unbreakableTex.dispose();
         fallingTex.dispose();
-        meteorTex.dispose();
+        Meteor.dispose();
         ammoBoxTex.dispose();
         healthPackTex.dispose();
         pauseMenu.dispose();
