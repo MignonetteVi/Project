@@ -6,55 +6,56 @@ import com.badlogic.gdx.graphics.GL20;
 
 
 public class FirstScreen implements Screen {
-    private GameManager gameManager;
+    private GameManager gameManager;// Ссылка на менеджер игры, который управляет всей логикой игры
 
     public FirstScreen() {
-        // Получаем единственный экземпляр GameManager
+        // Получаем единственный экземпляр GameManager (паттерн Singleton)
         gameManager = GameManager.getInstance();
     }
 
     @Override
     public void show() {
-        // Инициализируем новую игру через GameManager
+        //  Когда экран показывается, инициализируем новую игру через GameManager
         gameManager.startNewGame();
     }
 
     @Override
     public void render(float delta) {
-        // Очищаем экран
+        // Очищаем экран перед отрисовкой нового кадра
+
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Обновляем игровую логику через GameManager
         gameManager.update(delta);
 
-        // Отрисовываем игру через GameManager
+        // Отрисовываем игру через GameManager (это будет отображать все игровые объекты и интерфейс)
         gameManager.render();
     }
 
     @Override
     public void resize(int width, int height) {
-        // Передаем изменение размера в GameManager
+        // Когда окно изменяет размер, передаем новые размеры в GameManager
         gameManager.resize(width, height);
     }
 
     @Override
     public void pause() {
-        // Пауза игры (если нужно)
+        // Если игра приостановлена, можно выполнить дополнительные действия (например, сохранить состояние игры)
     }
 
     @Override
     public void resume() {
-        // Возобновление игры (если нужно)
+        // Если игра возобновляется, выполняем восстановление необходимых данных или состояния
     }
 
     @Override
     public void hide() {
-        // Действия при скрытии экрана
+        // Когда экран скрывается, выполняем очистку ресурсов, если нужно
     }
 
     @Override
     public void dispose() {
-        // Освобождаем ресурсы через GameManager
+        // Освобождаем ресурсы (например, текстуры, шрифты, игровые объекты)
         gameManager.dispose();
     }
 }
