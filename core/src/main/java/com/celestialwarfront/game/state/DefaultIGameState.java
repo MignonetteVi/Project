@@ -30,7 +30,12 @@ public class DefaultIGameState implements IGameState {
         ammo = 15;
     }
 
-    @Override public void addListener(IStateListener l) { listeners.add(l); }
+    @Override public void addListener(IStateListener l) { listeners.add(l);
+        l.onScoreChanged(score);
+        l.onHPChanged(hp);
+        l.onAmmoChanged(ammo);
+        l.onTimeChanged(getTimeString());
+        l.onLevelChanged(level); }
     @Override public void removeListener(IStateListener l) { listeners.remove(l); }
 
     @Override public int getScore() { return score; }
