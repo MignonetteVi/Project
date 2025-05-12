@@ -20,6 +20,7 @@ import com.celestialwarfront.game.ui.GameOverMenu;
 import com.celestialwarfront.game.ui.Hud;
 import com.celestialwarfront.game.ui.PauseMenu;
 import com.celestialwarfront.game.ui.StateListener;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +32,7 @@ public class GameManager {
 
     // Game components
     private OrthographicCamera camera;
-    private Viewport gameViewport;
+    private ScreenViewport gameViewport;
     private Viewport menuViewport;
     private Difficulty difficulty;
     private CollisionSystem collisionSystem;
@@ -201,7 +202,6 @@ public class GameManager {
         }
 
         camera.update();
-        batch.setProjectionMatrix(camera.combined);
         gameState.updateTimer(delta);
         updateGameState(delta);
     }
@@ -354,77 +354,66 @@ public class GameManager {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Применяем game-вьюпорт и камеру
+        // --- Отрисовка игрового мира ---
         gameViewport.apply();
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
         batch.begin();
-
-        // Отрисовка игрового мира (только если игра не завершена)
         if (!gameOver) {
             // Рассчет размеров корабля
             float blockW = breakableTex.getWidth();
-            float origW = playerTexture.getWidth();
-            float origH = playerTexture.getHeight();
-            float scale = blockW / origW;
-            float shipW = origW * scale;
-            float shipH = origH * scale;
+            float origW  = playerTexture.getWidth();
+            float origH  = playerTexture.getHeight();
+            float scale  = blockW / origW;
+            float shipW  = origW * scale;
+            float shipH  = origH * scale;
 
             // Отрисовка игровых объектов
             batch.draw(playerTexture, playerShip.x, playerShip.y, shipW, shipH);
 
-            // Отрисовка пуль
             for (Bullet bullet : bullets) {
                 batch.draw(bulletTexture, bullet.x, bullet.y);
             }
-
-            // Отрисовка блоков
             for (Block b : blocks) {
                 b.render(batch);
             }
-
-            // Отрисовка метеоров
             for (Meteor m : meteors) {
                 m.render(batch);
             }
-
-            // Отрисовка ящиков с боеприпасами
             for (AmmoBox box : ammoBoxes) {
                 box.render(batch);
             }
-
-            // Отрисовка аптечек
             for (HealthPack hp : healthPacks) {
                 hp.render(batch);
             }
         }
 
-        // Отрисовка HUD (всегда поверх игрового мира)
+        // HUD поверх мира
         hud.draw(batch);
-
-        // Отрисовка меню паузы (если активно)
-        if (pauseMenu.isVisible()) {
-            pauseMenu.render(batch);
-        }
-
-        // Отрисовка меню Game Over (если активно)
-        if (gameOverMenu.isVisible()) {
-            // Важно: переключаем проекционную матрицу для меню
-            batch.end();
-            batch.setProjectionMatrix(menuViewport.getCamera().combined);
-            batch.begin();
-
-            gameOverMenu.render(batch);
-
-            // Возвращаем проекцию для игрового мира
-            batch.end();
-            batch.setProjectionMatrix(camera.combined);
-            batch.begin();
-        }
-
         batch.end();
+
+        // --- Отрисовка меню паузы ---
+        if (pauseMenu.isVisible()) {
+            menuViewport.apply();
+            batch.setProjectionMatrix(menuViewport.getCamera().combined);
+
+            batch.begin();
+            pauseMenu.render(batch);
+            batch.end();
+        }
+
+        // --- Отрисовка меню Game Over ---
+        if (gameOverMenu.isVisible()) {
+            menuViewport.apply();
+            batch.setProjectionMatrix(menuViewport.getCamera().combined);
+
+            batch.begin();
+            gameOverMenu.render(batch);
+            batch.end();
+        }
     }
+
 
     public void resize(int width, int height) {
         gameViewport.update(width, height, true);

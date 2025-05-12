@@ -80,6 +80,8 @@ public class PauseMenu {
     public void render(SpriteBatch batch) {
         if (!isVisible) return;
 
+        viewport.apply();
+
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
         batch.setColor(0, 0, 0, 0.7f);

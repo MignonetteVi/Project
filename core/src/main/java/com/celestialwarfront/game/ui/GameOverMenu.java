@@ -66,6 +66,8 @@ public class GameOverMenu {
     public void render(SpriteBatch batch) {
         if (!isVisible) return;
 
+        viewport.apply();
+
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
         batch.draw(
