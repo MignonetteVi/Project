@@ -263,9 +263,11 @@ public class GameManager {
 
         meteorSpawnTimer += delta;
         if (meteorSpawnTimer >= nextMeteorSpawn) {
-            float spawnX = random.nextFloat() * (Gdx.graphics.getWidth() - meteorTex.getWidth() / 2f);
-            float speed = 80f + random.nextFloat() * 120f;
-            meteors.add(new Meteor(spawnX, Gdx.graphics.getHeight(), meteorTex, speed));
+            float worldW = gameViewport.getWorldWidth();
+            float worldH = gameViewport.getWorldHeight();
+            float spawnX = random.nextFloat() * (worldW - meteorTex.getWidth()/2f);
+            float speed  = 80f + random.nextFloat() * 120f;
+            meteors.add(new Meteor(spawnX, worldH, meteorTex, speed));
             meteorSpawnTimer = 0f;
             nextMeteorSpawn = 3f + random.nextFloat() * 5f;
         }
@@ -276,8 +278,10 @@ public class GameManager {
 
         ammoSpawnTimer += delta;
         if (ammoSpawnTimer >= nextAmmoSpawn) {
-            float x = random.nextFloat() * (Gdx.graphics.getWidth() - ammoBoxTex.getWidth());
-            ammoBoxes.add(new AmmoBox(x, Gdx.graphics.getHeight(), ammoBoxTex, 100f));
+            float worldW = gameViewport.getWorldWidth();
+            float worldH = gameViewport.getWorldHeight();
+            float x = random.nextFloat() * (worldW - ammoBoxTex.getWidth());
+            ammoBoxes.add(new AmmoBox(x, worldH, ammoBoxTex, 100f));
             ammoSpawnTimer = 0f;
             nextAmmoSpawn = 15f + random.nextFloat()*10f;
         }
@@ -285,8 +289,10 @@ public class GameManager {
 
         healthSpawnTimer += delta;
         if (healthSpawnTimer >= nextHealthSpawn) {
-            float x = random.nextFloat() * (Gdx.graphics.getWidth() - healthPackTex.getWidth());
-            healthPacks.add(new HealthPack(x, Gdx.graphics.getHeight(), healthPackTex, 100f));
+            float worldW = gameViewport.getWorldWidth();
+            float worldH = gameViewport.getWorldHeight();
+            float x = random.nextFloat() * (worldW - healthPackTex.getWidth());
+            healthPacks.add(new HealthPack(x, worldH, healthPackTex, 100f));
             healthSpawnTimer = 0f;
             nextHealthSpawn = 20f + random.nextFloat() * 20f;
         }
@@ -347,6 +353,11 @@ public class GameManager {
         // Очистка экрана
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Применяем game-вьюпорт и камеру
+        gameViewport.apply();
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
 
         batch.begin();
 
@@ -459,9 +470,9 @@ public class GameManager {
     }
 
     private void spawnBlockLineAt(float y) {
-        int screenW = Gdx.graphics.getWidth();
-        float blockW = breakableTex.getWidth();
-        int cols = (int)Math.ceil(screenW / blockW);
+        float screenW = gameViewport.getWorldWidth();              // ← здесь
+        float blockW  = breakableTex.getWidth();
+        int cols      = (int)Math.ceil(screenW / blockW);
 
         int unbreakCount = 0;
 
@@ -504,8 +515,8 @@ public class GameManager {
     }
 
     private void spawnBlockGroup(int lines) {
-        float screenH = Gdx.graphics.getHeight();
-        float blockH = breakableTex.getHeight();
+        float screenH = gameViewport.getWorldHeight();
+        float blockH  = breakableTex.getHeight();
 
         int count = Math.min(lines, 2);
 

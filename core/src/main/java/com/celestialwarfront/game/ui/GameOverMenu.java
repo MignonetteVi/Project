@@ -32,18 +32,27 @@ public class GameOverMenu {
             throw new RuntimeException("Texture loading failed", e);
         }
 
-        // Размеры и позиционирование элементов
-        float buttonWidth = 400f;
-        float buttonHeight = 100f;
-        float centerX = (1920 - buttonWidth) / 2;
+        background = new Rectangle();
+        restartButton = new Rectangle();
+        exitButton = new Rectangle();
+    }
 
-        background = new Rectangle(0, 0, 1920, 1080);
-        restartButton = new Rectangle(centerX, 500, buttonWidth, buttonHeight);
-        exitButton = new Rectangle(centerX, 350, buttonWidth, buttonHeight);
+    private void recalcLayout() {
+        float w = viewport.getWorldWidth();
+        float h = viewport.getWorldHeight();
+        // фон на весь экран
+        background.set(0, 0, w, h);
+        // размер кнопки — 40% ширины, 10% высоты
+        float bw = w * 0.4f;
+        float bh = h * 0.1f;
+        float cx = (w - bw) / 2f;
+        restartButton.set(cx, h * 0.46f, bw, bh);
+        exitButton   .set(cx, h * 0.32f, bw, bh);
     }
 
     public void setViewport(Viewport viewport) {
         this.viewport = viewport;
+        recalcLayout();
     }
 
     public void setVisible(boolean visible) {
@@ -57,19 +66,21 @@ public class GameOverMenu {
     public void render(SpriteBatch batch) {
         if (!isVisible) return;
 
-        // Переключаем проекцию на меню-камеру
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
-        // Рисуем полупрозрачный черный фон
-        // Отрисовка фона с проверкой
+        batch.draw(
+            backgroundTexture,
+            background.x,
+            background.y,
+            background.width,
+            background.height
+        );
+        batch.setColor(Color.WHITE);
 
-        batch.draw(backgroundTexture, 0, 0, 1920, 1080);  // Рисуем фон
-        batch.setColor(Color.WHITE);  // Сбрасываем цвет
-
-        // Отрисовка кнопок
         drawButton(batch, restartButton, restartButtonTexture);
         drawButton(batch, exitButton, exitButtonTexture);
     }
+
 
     private void drawButton(SpriteBatch batch, Rectangle rect, Texture texture) {
         if (isMouseOver(rect)) {

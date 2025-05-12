@@ -26,25 +26,19 @@ public class PauseMenu {
     private Viewport viewport;
 
     public PauseMenu() {
+        // Загрузка текстур
         pauseBgTexture = new Texture(Gdx.files.internal("pause_bg.png"));
         pauseContinueTexture = new Texture(Gdx.files.internal("continue_btn.png"));
         pauseRestartTexture = new Texture(Gdx.files.internal("restart_btn.png"));
         pauseExitTexture = new Texture(Gdx.files.internal("btn_exit.png"));
 
-        // Размеры кнопок
-        float buttonWidth = 500f;
-        float buttonHeight = 100f;
-        // Центральное позиционирование (для 1920x1080)
-        float centerX = (1920 - buttonWidth) / 2;
-        float centerY = 1080 / 2;
+        // Создаём "контейнеры" для позиций/размеров — они зададутся в recalcLayout()
+        pauseBackground = new Rectangle();
+        resumeButton = new Rectangle();
+        mainMenuButton = new Rectangle();
+        exitButton = new Rectangle();
 
-        // Позиции кнопок (по вертикали)
-        resumeButton = new Rectangle(centerX, centerY + 100, buttonWidth, buttonHeight);
-        mainMenuButton = new Rectangle(centerX, centerY - 50, buttonWidth, buttonHeight);
-        exitButton = new Rectangle(centerX, centerY - 200, buttonWidth, buttonHeight);
-        pauseBackground = new Rectangle(0, 0, 1920, 1080);
-
-        // Создаем простую текстуру для фона меню паузы
+        // Полупрозрачный чёрный фон
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
         pixmap.setColor(0, 0, 0, 0.7f);
         pixmap.fill();
@@ -52,8 +46,23 @@ public class PauseMenu {
         pixmap.dispose();
     }
 
+
+    private void recalcLayout() {
+        float w = viewport.getWorldWidth();
+        float h = viewport.getWorldHeight();
+        pauseBackground.set(0, 0, w, h);
+        float bw = w * 0.5f;
+        float bh = h * 0.1f;
+        float cx = (w - bw) / 2f;
+        float cy = h / 2f;
+        resumeButton    .set(cx, cy + h * 0.05f, bw, bh);
+        mainMenuButton  .set(cx, cy - h * 0.02f, bw, bh);
+        exitButton      .set(cx, cy - h * 0.18f, bw, bh);
+    }
+
     public void setViewport(Viewport viewport) {
         this.viewport = viewport;
+        recalcLayout();
     }
 
     public void setVisible(boolean visible) {
@@ -71,23 +80,31 @@ public class PauseMenu {
     public void render(SpriteBatch batch) {
         if (!isVisible) return;
 
-        // Переключаемся на меню-камеру
         batch.setProjectionMatrix(viewport.getCamera().combined);
 
-        // Отрисовка меню
         batch.setColor(0, 0, 0, 0.7f);
-        batch.draw(pauseTexture, 0, 0, 1920, 1080);
+        batch.draw(
+            pauseTexture,
+            pauseBackground.x,
+            pauseBackground.y,
+            pauseBackground.width,
+            pauseBackground.height
+        );
         batch.setColor(Color.WHITE);
 
-        // Фон меню
-        batch.draw(pauseBgTexture, pauseBackground.x, pauseBackground.y,
-            pauseBackground.width, pauseBackground.height);
+        batch.draw(
+            pauseBgTexture,
+            pauseBackground.x,
+            pauseBackground.y,
+            pauseBackground.width,
+            pauseBackground.height
+        );
 
-        // Отрисовка кнопок
-        drawButton(batch, resumeButton, pauseContinueTexture);
-        drawButton(batch, mainMenuButton, pauseRestartTexture);
-        drawButton(batch, exitButton, pauseExitTexture);
+        drawButton(batch, resumeButton,     pauseContinueTexture);
+        drawButton(batch, mainMenuButton,   pauseRestartTexture);
+        drawButton(batch, exitButton,       pauseExitTexture);
     }
+
 
     private void drawButton(SpriteBatch batch, Rectangle rect, Texture texture) {
         // Эффект при наведении

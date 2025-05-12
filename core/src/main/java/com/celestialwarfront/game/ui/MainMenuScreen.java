@@ -1,5 +1,7 @@
 package com.celestialwarfront.game.ui;
 
+import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 import com.badlogic.gdx.*;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.*;
@@ -20,16 +22,17 @@ public class MainMenuScreen implements Screen {
     // Области кнопок
     private Rectangle playButton;
     private Rectangle exitButton;
-
     // Фон
     private Texture background;
+
+    private Viewport viewport;
 
     public MainMenuScreen(final MainGame game) {
         this.game = game;
 
-        // Настройка камеры (16:9)
-        camera = new OrthographicCamera();
-        camera.setToOrtho(false, 1920, 1080);
+        // Настройка камеры (16:9) и вьюпорта
+        camera   = new OrthographicCamera();
+        viewport = new FitViewport(1920, 1080, camera);
 
         batch = new SpriteBatch();
         font = new BitmapFont();
@@ -39,43 +42,57 @@ public class MainMenuScreen implements Screen {
         // Загрузка текстур
         playButtonTexture = new Texture(Gdx.files.internal("btn_play.png"));
         exitButtonTexture = new Texture(Gdx.files.internal("btn_exit.png"));
-        background = new Texture(Gdx.files.internal("menu_bg.png")); // Добавьте свой фон
+        background        = new Texture(Gdx.files.internal("menu_bg.png"));
 
-        // Размеры и позиции кнопок (под размеры ваших текстур)
-        float buttonWidth = 400f; // Подправьте под реальные размеры
-        float buttonHeight = 150f;
-        float centerX = 1920/2 - buttonWidth/2;
+        // Просто создаём "контейнеры" — размеры зададутся в recalcLayout()
+        playButton = new Rectangle();
+        exitButton = new Rectangle();
 
-        playButton = new Rectangle(centerX, 450, buttonWidth, buttonHeight);
-        exitButton = new Rectangle(centerX, 250, buttonWidth, buttonHeight);
+        // Сразу расcчитываем макет под текущий viewport
+        recalcLayout();
+    }
+
+    private void recalcLayout() {
+        float w = viewport.getWorldWidth();
+        float h = viewport.getWorldHeight();
+        float bw = w * 0.25f;   // 25% ширины
+        float bh = h * 0.14f;   // 14% высоты
+        float cx = (w - bw)/2f;
+        playButton.set(cx, h * 0.42f, bw, bh);
+        exitButton.set(cx, h * 0.23f, bw, bh);
     }
 
     @Override
     public void render(float delta) {
-        // Очистка экрана
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        viewport.apply();
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
         batch.begin();
 
-        // Отрисовка фона
-        batch.draw(background, 0, 0, 1920, 1080);
+        batch.draw(
+            background,
+            0, 0,
+            viewport.getWorldWidth(),
+            viewport.getWorldHeight()
+        );
 
-        // Отрисовка кнопок
-        batch.draw(playButtonTexture,
+        batch.draw(
+            playButtonTexture,
             playButton.x, playButton.y,
-            playButton.width, playButton.height);
-
-        batch.draw(exitButtonTexture,
+            playButton.width, playButton.height
+        );
+        batch.draw(
+            exitButtonTexture,
             exitButton.x, exitButton.y,
-            exitButton.width, exitButton.height);
+            exitButton.width, exitButton.height
+        );
 
         batch.end();
 
-        // Обработка кликов
         handleInput();
     }
 
@@ -96,9 +113,8 @@ public class MainMenuScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        camera.viewportWidth = 1920;
-        camera.viewportHeight = 1080 * ((float)height/width);
-        camera.update();
+        viewport.update(width, height, true);
+        recalcLayout();
     }
 
     @Override
