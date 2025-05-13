@@ -36,6 +36,9 @@ import javax.swing.JOptionPane;
 public class GameManager {
     private static GameManager instance;
 
+    private AmmoBox ammoBoxPrototype;
+    private HealthPack healthPackPrototype;
+
     // Game components
     private OrthographicCamera camera;
     private Viewport gameViewport;
@@ -191,6 +194,11 @@ public class GameManager {
         pendingGameOverDialog = false;
         starField = new StarField(100, blockScrollSpeed);
         spawnBlockGroup(nextLineGroupCount);
+
+
+        // Создаем прототипы пикапов
+        ammoBoxPrototype = new AmmoBox(0, 0, ammoBoxTex, pickupBaseSpeed);
+        healthPackPrototype = new HealthPack(0, 0, healthPackTex, pickupBaseSpeed);
     }
 
     public void update(float delta) {
@@ -301,7 +309,7 @@ public class GameManager {
             int lvl = gameState.getLevel();
             float dm = getDifficultyMultiplier();
             float ammoSpeed = (pickupBaseSpeed + lvl * speedIncrementPerLevel) * dm;
-            ammoBoxes.add(new AmmoBox(x, Gdx.graphics.getHeight(), ammoBoxTex, ammoSpeed));
+            ammoBoxes.add(ammoBoxPrototype.clone().setPosition(x, Gdx.graphics.getHeight()).setSpeed(ammoSpeed));
             ammoSpawnTimer = 0f;
             nextAmmoSpawn = 15f + random.nextFloat()*10f;
         }
@@ -313,7 +321,7 @@ public class GameManager {
             int lvl = gameState.getLevel();
             float dm = getDifficultyMultiplier();
             float hpSpeed   = (pickupBaseSpeed + lvl * speedIncrementPerLevel) * dm;
-            healthPacks.add(new HealthPack(x, Gdx.graphics.getHeight(), healthPackTex, hpSpeed));
+            healthPacks.add(healthPackPrototype.clone().setPosition(x, Gdx.graphics.getHeight()).setSpeed(hpSpeed));
             healthSpawnTimer = 0f;
             nextHealthSpawn = 20f + random.nextFloat() * 20f;
         }

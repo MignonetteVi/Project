@@ -3,10 +3,11 @@ package com.celestialwarfront.game.domain.entities.pickup;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
+import com.celestialwarfront.game.contract.Prototype;
 
-public class HealthPack {
+public class HealthPack implements Prototype<HealthPack> {
     public float x, y;
-    private final float speed;
+    private  float speed;
     private final Texture texture;
     private boolean picked = false;
 
@@ -36,5 +37,23 @@ public class HealthPack {
     public boolean isPicked() {
         return picked;
     }
+
+    public HealthPack setPosition(float x, float y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+
+    public HealthPack setSpeed(float speed) {
+        this.speed = speed;
+        return this;
+    }
+
+    // Метод клонирования - создает новую аптечку с теми же параметрами
+    @Override
+    public HealthPack clone() {
+        return new HealthPack(this.x, this.y, this.texture, this.speed); // Создаем копию с теми же значениями
+    }
 }
+
 

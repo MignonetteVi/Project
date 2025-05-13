@@ -3,10 +3,11 @@ package com.celestialwarfront.game.domain.entities.pickup;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
+import com.celestialwarfront.game.contract.Prototype;
 
-public class AmmoBox {
+public class AmmoBox implements Prototype<AmmoBox> {
     public float x, y;
-    private final float speed;
+    private float speed;
     private final Texture texture;
     private boolean picked = false;
 
@@ -32,5 +33,21 @@ public class AmmoBox {
 
     public boolean isPicked() {
         return picked;
+    }
+    public AmmoBox setPosition(float x, float y) {
+        this.x = x;
+        this.y = y;
+        return this;
+    }
+    public AmmoBox setSpeed(float speed) {
+        this.speed = speed;
+        return this;
+    }
+
+
+    // Метод клонирования - создает новый ящик с теми же параметрами
+    @Override
+    public AmmoBox clone() {
+        return new AmmoBox(this.x, this.y, this.texture, this.speed);// Создаем копию с теми же значениями
     }
 }
