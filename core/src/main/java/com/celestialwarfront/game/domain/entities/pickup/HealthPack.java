@@ -3,9 +3,9 @@ package com.celestialwarfront.game.domain.entities.pickup;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Rectangle;
-import com.celestialwarfront.game.contract.Prototype;
+import com.celestialwarfront.game.contract.IPrototype;
 
-public class HealthPack implements Prototype<HealthPack> {
+public class HealthPack implements IPrototype<HealthPack> {
     public float x, y;
     private  float speed;
     private final Texture texture;
