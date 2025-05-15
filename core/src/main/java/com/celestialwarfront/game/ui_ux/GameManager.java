@@ -109,7 +109,7 @@ public class GameManager {
         // Initialize game systems
         gameState = new DefaultIGameState();
         hud = new Hud();
-        gameState.addListener(hud);
+        gameState.addListener(new HudStateListenerAdapter(hud));
 
         bullets = new ArrayList<>();
         blocks = new ArrayList<>();
@@ -199,6 +199,8 @@ public class GameManager {
         // Создаем прототипы пикапов
         ammoBoxPrototype = new AmmoBox(0, 0, ammoBoxTex, pickupBaseSpeed);
         healthPackPrototype = new HealthPack(0, 0, healthPackTex, pickupBaseSpeed);
+
+
     }
 
     public void update(float delta) {
