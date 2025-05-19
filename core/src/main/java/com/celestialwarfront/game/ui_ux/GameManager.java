@@ -175,9 +175,9 @@ public class GameManager {
 
         collisionSystem = new CollisionSystem(gameState);
 
-        int screenW = Gdx.graphics.getWidth();
+        float worldW = gameViewport.getWorldWidth();
         float blockW = breakableTex.getWidth();
-        cols = (int)Math.ceil(screenW / blockW);
+        cols = (int)Math.ceil(worldW / blockW);
 
         gapIndex = cols / 2;
         gapLinesRemaining = 5;
@@ -289,14 +289,16 @@ public class GameManager {
 
         meteorSpawnTimer += delta;
         if (meteorSpawnTimer >= nextMeteorSpawn) {
-            float spawnX = random.nextFloat() * Gdx.graphics.getWidth();
+            float worldW = gameViewport.getWorldWidth();
+            float worldH = gameViewport.getWorldHeight();
+            float spawnX = random.nextFloat() * worldW;
             int lvl = gameState.getLevel();
             float dm = getDifficultyMultiplier();
             float speed = (meteorBaseSpeed
                 + random.nextFloat() * meteorSpeedRange
                 + lvl * speedIncrementPerLevel)
                 * dm;
-            meteors.add(new Meteor(spawnX, Gdx.graphics.getHeight(), speed));
+            meteors.add(new Meteor(spawnX, worldH, speed));
             meteorSpawnTimer = 0f;
             nextMeteorSpawn = 3f + random.nextFloat() * 5f;
         }
@@ -307,11 +309,15 @@ public class GameManager {
 
         ammoSpawnTimer += delta;
         if (ammoSpawnTimer >= nextAmmoSpawn) {
-            float x = random.nextFloat() * (Gdx.graphics.getWidth() - ammoBoxTex.getWidth());
+            float worldW = gameViewport.getWorldWidth();
+            float worldH = gameViewport.getWorldHeight();
+            float x = random.nextFloat() * (worldW - ammoBoxTex.getWidth());
             int lvl = gameState.getLevel();
             float dm = getDifficultyMultiplier();
             float ammoSpeed = (pickupBaseSpeed + lvl * speedIncrementPerLevel) * dm;
-            ammoBoxes.add(ammoBoxPrototype.clone().setPosition(x, Gdx.graphics.getHeight()).setSpeed(ammoSpeed));
+            ammoBoxes.add(ammoBoxPrototype.clone()
+                .setPosition(x, worldH)
+                .setSpeed(ammoSpeed));
             ammoSpawnTimer = 0f;
             nextAmmoSpawn = 15f + random.nextFloat()*10f;
         }
@@ -319,13 +325,17 @@ public class GameManager {
 
         healthSpawnTimer += delta;
         if (healthSpawnTimer >= nextHealthSpawn) {
-            float x = random.nextFloat() * (Gdx.graphics.getWidth() - healthPackTex.getWidth());
+            float worldW = gameViewport.getWorldWidth();
+            float worldH = gameViewport.getWorldHeight();
+            float x = random.nextFloat() * (worldW - healthPackTex.getWidth());
             int lvl = gameState.getLevel();
             float dm = getDifficultyMultiplier();
             float hpSpeed   = (pickupBaseSpeed + lvl * speedIncrementPerLevel) * dm;
-            healthPacks.add(healthPackPrototype.clone().setPosition(x, Gdx.graphics.getHeight()).setSpeed(hpSpeed));
+            healthPacks.add(healthPackPrototype.clone()
+                .setPosition(x, worldH)
+                .setSpeed(hpSpeed));
             healthSpawnTimer = 0f;
-            nextHealthSpawn = 20f + random.nextFloat() * 20f;
+            nextHealthSpawn = 20f + random.nextFloat()*20f;
         }
         for (HealthPack hp : healthPacks) {
             hp.update(delta);
@@ -381,10 +391,12 @@ public class GameManager {
     }
 
     public void render() {
-        // Очистка экрана
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        gameViewport.apply(true);
+        camera.update();
+        batch.setProjectionMatrix(camera.combined);
 
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         batch.begin();
 
         if (starField != null) {
@@ -456,12 +468,6 @@ public class GameManager {
         batch.end();
     }
 
-    public void resize(int width, int height) {
-        gameViewport.update(width, height, true);
-        menuViewport.update(width, height, true);
-        hud.resize(width, height);
-    }
-
     public void dispose() {
         playerTexture.dispose();
         bulletTexture.dispose();
@@ -500,13 +506,11 @@ public class GameManager {
     }
 
     private void spawnBlockLineAt(float y) {
-        int screenW = Gdx.graphics.getWidth();
         float blockW = breakableTex.getWidth();
-        int cols = (int)Math.ceil(screenW / blockW);
 
         int unbreakCount = 0;
 
-        for (int i = 0; i < cols; i++   ) {
+        for (int i = 0; i < this.cols; i++) {
             if (gapLinesRemaining > 0 && i == gapIndex) continue;
 
             float x = i * blockW;
@@ -545,13 +549,13 @@ public class GameManager {
     }
 
     private void spawnBlockGroup(int lines) {
-        float screenH = Gdx.graphics.getHeight();
+        float worldH = gameViewport.getWorldHeight();
         float blockH = breakableTex.getHeight();
 
         int count = Math.min(lines, 2);
 
         for (int i = 0; i < count; i++) {
-            spawnBlockLineAt(screenH + i * blockH);
+            spawnBlockLineAt(worldH + i * blockH);
         }
     }
 
@@ -571,4 +575,11 @@ public class GameManager {
     public Hud getHud() {
         return hud;
     }
+
+    public void resize(int width, int height) {
+        gameViewport.update(width, height, true);
+        menuViewport.update(width, height, true);
+        hud.resize(width, height);
+    }
+
 }

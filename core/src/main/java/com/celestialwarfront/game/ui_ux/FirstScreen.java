@@ -21,9 +21,6 @@ public class FirstScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        // Очищаем экран
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
         // Обновляем игровую логику через GameManager
         gameManager.update(delta);
 
